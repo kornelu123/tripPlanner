@@ -52,6 +52,10 @@ Open <http://localhost:3000>. The health endpoint is available at <http://localh
 Environment values are validated when an infrastructure client is first requested. Do not expose either variable through a `NEXT_PUBLIC_` prefix.
 Authentication records, challenges, and sessions are stored in PostgreSQL. Set `APP_URL` to the canonical production origin: builds fail closed rather than allowing passkeys to bind to `localhost`, and the relying-party ID must match that origin's hostname.
 
+### CARTO basemap
+
+The map uses CARTO's public Voyager raster tiles and does not require a CARTO API key. No CARTO environment variable is needed for local development or deployment. If the map is changed to use an authenticated CARTO service, add the service's credential to the server-side environment rather than exposing it through a `NEXT_PUBLIC_` variable.
+
 ## Commands
 
 | Command             | Purpose                                      |
