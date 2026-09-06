@@ -18,7 +18,7 @@ function canReadTrip(userId: string) {
   );
 }
 
-function canEditTrip(userId: string) {
+export function tripEditCondition(userId: string) {
   return or(
     eq(schema.trips.ownerId, userId),
     sql`exists (
@@ -68,7 +68,7 @@ export function createTripRepository(database: Database) {
       const [trip] = await database
         .update(schema.trips)
         .set({ name, updatedAt: new Date() })
-        .where(and(eq(schema.trips.id, tripId), canEditTrip(userId)))
+        .where(and(eq(schema.trips.id, tripId), tripEditCondition(userId)))
         .returning();
       return trip;
     },

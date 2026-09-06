@@ -40,12 +40,17 @@ Open <http://localhost:3000>. The health endpoint is available at <http://localh
 
 ## Environment variables
 
-| Variable       | Required | Purpose                              | Example                                                              |
-| -------------- | -------- | ------------------------------------ | -------------------------------------------------------------------- |
-| `DATABASE_URL` | Yes      | PostgreSQL/PostGIS connection string | `postgresql://trip_planner:trip_planner@localhost:5432/trip_planner` |
-| `REDIS_URL`    | Yes      | Redis connection string              | `redis://localhost:6379`                                             |
+| Variable                                                                | Required   | Purpose                                                     | Example                                                              |
+| ----------------------------------------------------------------------- | ---------- | ----------------------------------------------------------- | -------------------------------------------------------------------- |
+| `DATABASE_URL`                                                          | Yes        | PostgreSQL/PostGIS connection string                        | `postgresql://trip_planner:trip_planner@localhost:5432/trip_planner` |
+| `REDIS_URL`                                                             | Yes        | Redis connection string                                     | `redis://localhost:6379`                                             |
+| `APP_URL`                                                               | Production | Canonical HTTPS origin and WebAuthn origin                  | `https://trips.example.com`                                          |
+| `WEBAUTHN_RP_ID`                                                        | Production | Passkey relying-party ID; must equal the `APP_URL` hostname | `trips.example.com`                                                  |
+| `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` | For Apple  | Apple Services ID and signing credentials                   | —                                                                    |
+| `SMTP_URL`, `EMAIL_FROM`                                                | Production | Magic-link SMTP transport and sender                        | —                                                                    |
 
 Environment values are validated when an infrastructure client is first requested. Do not expose either variable through a `NEXT_PUBLIC_` prefix.
+Authentication records, challenges, and sessions are stored in PostgreSQL. Set `APP_URL` to the canonical production origin: builds fail closed rather than allowing passkeys to bind to `localhost`, and the relying-party ID must match that origin's hostname.
 
 ## Commands
 

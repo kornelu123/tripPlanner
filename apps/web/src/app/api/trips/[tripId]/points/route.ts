@@ -2,18 +2,23 @@ import { NextResponse } from 'next/server';
 
 import { addTripPoint, getTripEditorData } from '@/lib/trip-editor-store';
 import type { PointDraft } from '@/lib/trip-editor-types';
+import { authorizeTrip } from '@/lib/auth';
 
 interface Context {
   params: Promise<{ tripId: string }>;
 }
 
-export async function GET(_request: Request, { params }: Context) {
+export async function GET(request: Request, { params }: Context) {
   const { tripId } = await params;
+  const auth = await authorizeTrip(request, tripId);
+  if (auth.error) return auth.error;
   return NextResponse.json(getTripEditorData(tripId));
 }
 
 export async function POST(request: Request, { params }: Context) {
   const { tripId } = await params;
+  const auth = await authorizeTrip(request, tripId, true);
+  if (auth.error) return auth.error;
   const draft = (await request.json()) as PointDraft;
   if (
     !draft.name ||

@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
 
-import {
-  authenticatedUserId,
-  categoryColorPattern,
-} from '../../../../lib/category-validation';
+import { categoryColorPattern } from '../../../../lib/category-validation';
+import { authorizeTrip } from '../../../../lib/auth';
 import {
   allowedCategoryIcons,
-  canEditTrip,
   deleteCategory,
   listCategories,
   updateCategory,
@@ -17,12 +14,6 @@ interface Context {
 }
 
 export async function PATCH(request: Request, { params }: Context) {
-  const userId = authenticatedUserId(request);
-  if (!userId)
-    return NextResponse.json(
-      { message: 'Authentication required.' },
-      { status: 401 },
-    );
   const tripId = new URL(request.url).searchParams.get('tripId');
   const { categoryId } = await params;
   const input = (await request.json()) as Record<string, unknown>;
@@ -31,8 +22,8 @@ export async function PATCH(request: Request, { params }: Context) {
       { message: 'tripId is required.' },
       { status: 400 },
     );
-  if (!canEditTrip(tripId, userId))
-    return NextResponse.json({ message: 'Trip not found.' }, { status: 404 });
+  const auth = await authorizeTrip(request, tripId, true);
+  if (auth.error) return auth.error;
   const update: {
     name?: string;
     color?: string;
@@ -88,17 +79,12 @@ export async function PATCH(request: Request, { params }: Context) {
 }
 
 export async function DELETE(request: Request, { params }: Context) {
-  const userId = authenticatedUserId(request);
-  if (!userId)
-    return NextResponse.json(
-      { message: 'Authentication required.' },
-      { status: 401 },
-    );
   const url = new URL(request.url);
   const tripId = url.searchParams.get('tripId');
   const { categoryId } = await params;
   if (!tripId) return new Response(null, { status: 400 });
-  if (!canEditTrip(tripId, userId)) return new Response(null, { status: 404 });
+  const auth = await authorizeTrip(request, tripId, true);
+  if (auth.error) return auth.error;
   const replacementId = url.searchParams.get('reassignTo') ?? undefined;
   const exists = listCategories(tripId).some(({ id }) => id === categoryId);
   if (!exists) return new Response(null, { status: 404 });

@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('../../../../../lib/auth', () => ({
+  authorizeTrip: () => ({ error: null }),
+}));
+
 const { enqueue } = vi.hoisted(() => ({ enqueue: vi.fn() }));
 vi.mock('../../../../../lib/social-import-worker', () => ({
   enqueueSocialImport: enqueue,

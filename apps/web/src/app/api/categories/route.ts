@@ -1,44 +1,26 @@
 import { NextResponse } from 'next/server';
 
-import {
-  authenticatedUserId,
-  categoryInput,
-} from '../../../lib/category-validation';
-import {
-  addCategory,
-  canEditTrip,
-  listCategories,
-} from '../../../lib/trip-editor-store';
+import { categoryInput } from '../../../lib/category-validation';
+import { authorizeTrip } from '../../../lib/auth';
+import { addCategory, listCategories } from '../../../lib/trip-editor-store';
 
 function tripIdFrom(request: Request) {
   return new URL(request.url).searchParams.get('tripId')?.trim();
 }
 
-export function GET(request: Request) {
-  const userId = authenticatedUserId(request);
-  if (!userId)
-    return NextResponse.json(
-      { message: 'Authentication required.' },
-      { status: 401 },
-    );
+export async function GET(request: Request) {
   const tripId = tripIdFrom(request);
   if (!tripId)
     return NextResponse.json(
       { message: 'tripId is required.' },
       { status: 400 },
     );
-  if (!canEditTrip(tripId, userId))
-    return NextResponse.json({ message: 'Trip not found.' }, { status: 404 });
+  const auth = await authorizeTrip(request, tripId);
+  if (auth.error) return auth.error;
   return NextResponse.json(listCategories(tripId));
 }
 
 export async function POST(request: Request) {
-  const userId = authenticatedUserId(request);
-  if (!userId)
-    return NextResponse.json(
-      { message: 'Authentication required.' },
-      { status: 401 },
-    );
   const tripId = tripIdFrom(request);
   const input = categoryInput(await request.json());
   if (!tripId || !input)
@@ -46,8 +28,8 @@ export async function POST(request: Request) {
       { message: 'A valid name, color, and icon are required.' },
       { status: 400 },
     );
-  if (!canEditTrip(tripId, userId))
-    return NextResponse.json({ message: 'Trip not found.' }, { status: 404 });
+  const auth = await authorizeTrip(request, tripId, true);
+  if (auth.error) return auth.error;
   if (
     listCategories(tripId).some(
       ({ name }) => name.toLowerCase() === input.name.toLowerCase(),

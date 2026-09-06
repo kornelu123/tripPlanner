@@ -12,11 +12,15 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/server": "^13.3.3",
     "@trip-planner/config": "workspace:*",
     "@trip-planner/database": "workspace:*",
     "@trip-planner/domain": "workspace:*",
+    "jose": "^6.2.12",
     "maplibre-gl": "^6.7.0",
     "next": "16.1.6",
+    "nodemailer": "^7.0.13",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
@@ -26,6 +30,7 @@
     "@testing-library/user-event": "^14.6.7",
     "@types/geojson": "^7946.0.16",
     "@types/node": "24.10.1",
+    "@types/nodemailer": "^7.0.12",
     "@types/react": "19.2.13",
     "@types/react-dom": "19.2.3",
     "eslint": "9.39.3",

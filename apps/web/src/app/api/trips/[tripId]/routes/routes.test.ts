@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('../../../../../lib/auth', () => ({
+  authorizeTrip: () => ({ error: null }),
+}));
+
 import { getTripEditorData } from '../../../../../lib/trip-editor-store';
 
 import { POST } from './route';
