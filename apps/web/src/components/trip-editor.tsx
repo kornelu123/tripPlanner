@@ -49,15 +49,31 @@ export function TripEditor({ tripId }: { tripId: string }) {
   const [roundTrip, setRoundTrip] = useState(false);
   const [fixedStartId, setFixedStartId] = useState('');
   const [fixedEndId, setFixedEndId] = useState('');
+  const [activeView, setActiveView] = useState<'places' | 'map'>('map');
+  const [mapState, setMapState] = useState<'loading' | 'ready' | 'error'>(
+    'loading',
+  );
+  const [mapKey, setMapKey] = useState(0);
+  const [searchState, setSearchState] = useState<
+    'idle' | 'loading' | 'empty' | 'error'
+  >('idle');
+  const [routeState, setRouteState] = useState<'idle' | 'loading' | 'error'>(
+    'idle',
+  );
+  const [isOnline, setIsOnline] = useState(() =>
+    typeof navigator === 'undefined' ? true : navigator.onLine,
+  );
 
-  useEffect(() => {
+  const loadTrip = useCallback(() => {
     fetch(`/api/trips/${tripId}/points`)
       .then((response) => {
-        if (!response.ok) throw new Error('Could not load this trip.');
+        if (!response.ok)
+          throw new Error('Could not load this trip or social imports.');
         return response.json() as Promise<TripEditorData>;
       })
       .then((loaded) => {
         setData(loaded);
+        setStatus('');
         setRouteOrder(
           loaded.routePlan?.pointIds ?? loaded.points.map(({ id }) => id),
         );
@@ -70,6 +86,28 @@ export function TripEditor({ tripId }: { tripId: string }) {
       })
       .catch((error: Error) => setStatus(error.message));
   }, [tripId]);
+
+  useEffect(() => {
+    loadTrip();
+  }, [loadTrip]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(`roamly-point-draft:${tripId}`);
+    if (saved) queueMicrotask(() => setDraft(JSON.parse(saved) as PointDraft));
+    const updateConnection = () => setIsOnline(navigator.onLine);
+    window.addEventListener('online', updateConnection);
+    window.addEventListener('offline', updateConnection);
+    return () => {
+      window.removeEventListener('online', updateConnection);
+      window.removeEventListener('offline', updateConnection);
+    };
+  }, [tripId]);
+
+  useEffect(() => {
+    const key = `roamly-point-draft:${tripId}`;
+    if (draft) localStorage.setItem(key, JSON.stringify(draft));
+    else localStorage.removeItem(key);
+  }, [draft, tripId]);
 
   const selectPoint = useCallback((id: string) => {
     setSelectedId(id);
@@ -118,10 +156,21 @@ export function TripEditor({ tripId }: { tripId: string }) {
     setStatus(`${point.name} added.`);
   }
 
-  async function search(event: React.FormEvent) {
-    event.preventDefault();
-    const response = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
-    setResults(response.ok ? ((await response.json()) as PointDraft[]) : []);
+  async function search(event?: React.FormEvent) {
+    event?.preventDefault();
+    setSearchState('loading');
+    try {
+      const response = await fetch(
+        `/api/geocode?q=${encodeURIComponent(query)}`,
+      );
+      if (!response.ok) throw new Error();
+      const nextResults = (await response.json()) as PointDraft[];
+      setResults(nextResults);
+      setSearchState(nextResults.length ? 'idle' : 'empty');
+    } catch {
+      setResults([]);
+      setSearchState('error');
+    }
   }
 
   function useLocation() {
@@ -287,6 +336,7 @@ export function TripEditor({ tripId }: { tripId: string }) {
 
   async function calculateRoute(optimize: boolean) {
     setStatus('Calculating route…');
+    setRouteState('loading');
     const response = await fetch(`/api/trips/${tripId}/routes`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -298,9 +348,15 @@ export function TripEditor({ tripId }: { tripId: string }) {
         fixedEndId: roundTrip ? undefined : fixedEndId || undefined,
         optimize,
       }),
-    });
+    }).catch(() => null);
+    if (!response) {
+      setRouteState('error');
+      setStatus('Could not calculate route.');
+      return;
+    }
     const result = (await response.json()) as RoutePlan | { message: string };
     if (!response.ok) {
+      setRouteState('error');
       setStatus(
         'message' in result ? result.message : 'Could not calculate route.',
       );
@@ -316,6 +372,7 @@ export function TripEditor({ tripId }: { tripId: string }) {
         },
     );
     setRouteOrder(routePlan.pointIds);
+    setRouteState('idle');
     setStatus('Route saved.');
   }
 
@@ -353,7 +410,16 @@ export function TripEditor({ tripId }: { tripId: string }) {
   }
 
   if (!data) {
-    return <main className="editor-loading">{status || 'Loading trip…'}</main>;
+    return (
+      <main className="editor-loading" aria-live="polite">
+        <p>{status || 'Loading trip and social imports…'}</p>
+        {status === 'Could not load this trip or social imports.' && (
+          <button type="button" onClick={loadTrip}>
+            Retry loading trip
+          </button>
+        )}
+      </main>
+    );
   }
   const visiblePoints =
     categoryFilter === 'all'
@@ -377,7 +443,32 @@ export function TripEditor({ tripId }: { tripId: string }) {
       </header>
 
       <div className="editor-grid">
-        <section className="point-panel" aria-labelledby="places-heading">
+        {!isOnline && (
+          <div className="offline-notice" role="status">
+            You’re offline. This draft is saved on this device and will be ready
+            when your connection returns. Maps and routes need a network.
+          </div>
+        )}
+        <nav className="mobile-view-switcher" aria-label="Editor view">
+          <button
+            type="button"
+            aria-pressed={activeView === 'map'}
+            onClick={() => setActiveView('map')}
+          >
+            Map
+          </button>
+          <button
+            type="button"
+            aria-pressed={activeView === 'places'}
+            onClick={() => setActiveView('places')}
+          >
+            Places ({data.points.length})
+          </button>
+        </nav>
+        <section
+          className={`point-panel ${activeView === 'places' ? 'mobile-active' : ''}`}
+          aria-labelledby="places-heading"
+        >
           <div className="panel-heading">
             <div>
               <p className="eyebrow">Build your route</p>
@@ -416,6 +507,18 @@ export function TripEditor({ tripId }: { tripId: string }) {
               ))}
             </ul>
           )}
+          <div className="resource-state" role="status" aria-live="polite">
+            {searchState === 'loading' && 'Searching for places…'}
+            {searchState === 'empty' && 'No places matched your search.'}
+            {searchState === 'error' && (
+              <>
+                Geocoding is unavailable.{' '}
+                <button type="button" onClick={() => void search()}>
+                  Retry search
+                </button>
+              </>
+            )}
+          </div>
 
           <div className="add-actions">
             <button type="button" onClick={useLocation}>
@@ -747,6 +850,11 @@ export function TripEditor({ tripId }: { tripId: string }) {
                 Restore previous
               </button>
             </div>
+            <div className="resource-state" role="status" aria-live="polite">
+              {routeState === 'loading' && 'Calculating route…'}
+              {routeState === 'error' &&
+                'Routing failed. Check your connection and retry with the route controls.'}
+            </div>
             {data.routePlan && (
               <ol className="leg-list" aria-label="Route legs">
                 {data.routePlan.legs.map((leg, index) => (
@@ -834,29 +942,40 @@ export function TripEditor({ tripId }: { tripId: string }) {
             ))}
           </ol>
 
-          {data.pendingImports.length > 0 && (
-            <section
-              className="pending-imports"
-              aria-labelledby="imports-heading"
-            >
-              <h2 id="imports-heading">Pending social saves</h2>
-              {data.pendingImports.map((item) => (
-                <article key={item.id}>
-                  <div>
-                    <strong>{item.name}</strong>
-                    <span>{item.source}</span>
-                  </div>
-                  <button type="button" onClick={() => addPending(item)}>
-                    Add to trip
-                  </button>
-                </article>
-              ))}
-            </section>
+          {visiblePoints.length === 0 && (
+            <p className="empty-state">
+              No places in this view. Add a place or change the category filter.
+            </p>
           )}
+
+          <section
+            className="pending-imports"
+            aria-labelledby="imports-heading"
+          >
+            <h2 id="imports-heading">Pending social saves</h2>
+            {data.pendingImports.length === 0 && (
+              <p className="empty-state">No social imports are waiting.</p>
+            )}
+            {data.pendingImports.map((item) => (
+              <article key={item.id}>
+                <div>
+                  <strong>{item.name}</strong>
+                  <span>{item.source}</span>
+                </div>
+                <button type="button" onClick={() => addPending(item)}>
+                  Add to trip
+                </button>
+              </article>
+            ))}
+          </section>
         </section>
 
-        <section className="map-panel" aria-label="Map and map controls">
+        <section
+          className={`map-panel ${activeView === 'map' ? 'mobile-active' : ''}`}
+          aria-label="Map and map controls"
+        >
           <LazyTripMap
+            key={mapKey}
             points={visiblePoints}
             categories={data.categories}
             selectedId={selectedId}
@@ -867,7 +986,26 @@ export function TripEditor({ tripId }: { tripId: string }) {
             onMoveCoordinates={(latitude, longitude) =>
               void moveCoordinates(latitude, longitude)
             }
+            onStatus={setMapState}
           />
+          {mapState !== 'ready' && (
+            <div className="map-state" role="status" aria-live="polite">
+              {mapState === 'loading'
+                ? 'Loading map tiles…'
+                : 'Map tiles could not load.'}
+              {mapState === 'error' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMapState('loading');
+                    setMapKey((key) => key + 1);
+                  }}
+                >
+                  Retry map
+                </button>
+              )}
+            </div>
+          )}
           <p className="map-hint">
             Click the map to add a place. Select a marker to open its card.
           </p>

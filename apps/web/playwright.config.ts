@@ -9,7 +9,11 @@ export default defineConfig({
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile-chrome', use: { ...devices['Pixel 7'] } },
+    {
+      name: 'iphone-13-mini',
+      grep: /dedicated map and places views/,
+      use: { ...devices['iPhone 13 Mini'] },
+    },
   ],
   webServer: {
     command: 'pnpm dev',

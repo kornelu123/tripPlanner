@@ -152,6 +152,7 @@ describe('TripEditor', () => {
 
   afterEach(() => {
     cleanup();
+    localStorage.clear();
     vi.unstubAllGlobals();
   });
 
@@ -248,5 +249,22 @@ describe('TripEditor', () => {
         .getByLabelText('Fixed end')
         .querySelector<HTMLOptionElement>('option[value="first"]')?.disabled,
     ).toBe(true);
+  });
+
+  it('restores an unsaved place draft from local storage', async () => {
+    const user = userEvent.setup();
+    const view = render(<TripEditor tripId="test" />);
+    await screen.findByText('First place');
+    await user.click(screen.getByRole('button', { name: /Add place/ }));
+    await user.type(screen.getByLabelText('Name'), 'Offline café');
+    await waitFor(() =>
+      expect(localStorage.getItem('roamly-point-draft:test')).toContain(
+        'Offline café',
+      ),
+    );
+
+    view.unmount();
+    render(<TripEditor tripId="test" />);
+    expect(await screen.findByDisplayValue('Offline café')).toBeTruthy();
   });
 });
