@@ -29,4 +29,5 @@ export async function getRedisClient(): Promise<
   return redis;
 }
 
-export { trips } from './schema';
+export * from './repository';
+export * from './schema';

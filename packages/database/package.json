@@ -9,6 +9,7 @@
   "scripts": {
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },
@@ -22,6 +23,7 @@
     "@types/node": "24.10.1",
     "@types/pg": "8.16.0",
     "drizzle-kit": "0.31.8",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "4.0.18"
   }
 }
