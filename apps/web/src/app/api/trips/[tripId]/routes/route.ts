@@ -15,6 +15,7 @@ import type {
   RoutePlanRequest,
 } from '../../../../../lib/trip-editor-types';
 import { authorizeTrip } from '../../../../../lib/auth';
+import { parseJson, routePlanSchema } from '../../../../../lib/api-schemas';
 
 interface Context {
   params: Promise<{ tripId: string }>;
@@ -45,9 +46,12 @@ export async function POST(request: Request, { params }: Context) {
   const { tripId } = await params;
   const auth = await authorizeTrip(request, tripId, true);
   if (auth.error) return auth.error;
-  const input = (await request.json()) as RoutePlanRequest;
+  const input = (await parseJson(request, routePlanSchema)) as
+    | RoutePlanRequest
+    | undefined;
   const data = getTripEditorData(tripId);
   if (
+    !input ||
     !Array.isArray(input.pointIds) ||
     input.pointIds.length < 2 ||
     new Set(input.pointIds).size !== input.pointIds.length ||

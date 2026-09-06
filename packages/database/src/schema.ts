@@ -337,3 +337,19 @@ export const socialImports = pgTable(
     index('social_imports_trip_id_idx').on(table.tripId),
   ],
 );
+
+export const auditEvents = pgTable(
+  'audit_events',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    actorUserId: uuid('actor_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    subjectId: uuid('subject_id'),
+    action: varchar('action', { length: 80 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index('audit_events_created_at_idx').on(table.createdAt)],
+);

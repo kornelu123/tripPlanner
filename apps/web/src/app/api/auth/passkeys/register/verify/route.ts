@@ -71,6 +71,10 @@ export async function POST(request: Request) {
         { status: 409 },
       );
     const session = await rotateSession(request, stored.userId);
+    await authRepository().recordAuditEvent(
+      'credential.passkey_added',
+      stored.userId,
+    );
     const response = NextResponse.json(
       { verified: true, credential: { id: saved.id, name: saved.name } },
       { status: 201 },

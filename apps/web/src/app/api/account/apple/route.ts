@@ -28,6 +28,10 @@ export async function DELETE(request: Request) {
       { status: 409 },
     );
   await authRepository().unlinkApple(auth.user.id);
+  await authRepository().recordAuditEvent(
+    'credential.apple_unlinked',
+    auth.user.id,
+  );
   const rotated = await rotateSession(request, auth.user.id);
   const response = new NextResponse(null, { status: 204 });
   setSessionCookie(response, rotated.token, rotated.expiresAt);

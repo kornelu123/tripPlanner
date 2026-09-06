@@ -69,6 +69,10 @@ export async function POST(request: Request) {
       verification.authenticationInfo.newCounter,
     );
     const session = await rotateSession(request, credential.userId);
+    await authRepository().recordAuditEvent(
+      'login.succeeded',
+      credential.userId,
+    );
     const response = NextResponse.json({ verified: true });
     setSessionCookie(response, session.token, session.expiresAt);
     return response;

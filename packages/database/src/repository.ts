@@ -103,6 +103,11 @@ export function createTripRepository(database: Database) {
         .insert(schema.memberships)
         .values({ tripId, userId, role })
         .returning();
+      await database.insert(schema.auditEvents).values({
+        action: 'trip.shared',
+        actorUserId: ownerId,
+        subjectId: tripId,
+      });
       return membership;
     },
   };

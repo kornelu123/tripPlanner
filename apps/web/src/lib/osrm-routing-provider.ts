@@ -6,6 +6,7 @@ import type {
   RoutingProvider,
   TravelMode,
 } from '@trip-planner/domain';
+import { incrementMetric, observeMetric } from './service-metrics';
 
 interface OsrmTableResponse {
   code: string;
@@ -52,6 +53,7 @@ export class OsrmRoutingProvider implements RoutingProvider {
   ) {}
 
   private async get<T>(path: string): Promise<T> {
+    const startedAt = performance.now();
     let response: Response;
     try {
       response = await this.request(`${this.baseUrl}${path}`);
@@ -62,11 +64,17 @@ export class OsrmRoutingProvider implements RoutingProvider {
       );
     }
     if (!response.ok) {
+      if (response.status === 429)
+        incrementMetric('provider_rate_limits_total');
       throw new RoutingProviderError(
         'The routing provider returned an error.',
         'unavailable',
       );
     }
+    observeMetric(
+      'routing_latency_milliseconds',
+      performance.now() - startedAt,
+    );
     return (await response.json()) as T;
   }
 
