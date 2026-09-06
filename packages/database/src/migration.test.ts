@@ -7,6 +7,7 @@ async function readMigrations() {
     '0000_enable_postgis_and_create_trips.sql',
     '0001_create_trip_planning_schema.sql',
     '0004_add_authentication.sql',
+    '0006_add_place_price_estimates.sql',
   ];
   const migrations = await Promise.all(
     names.map((name) =>
@@ -34,6 +35,7 @@ describe('database migration', () => {
       'auth_challenges',
       'sessions',
       'apple_accounts',
+      'place_price_estimates',
     ]) {
       expect(migration).toMatch(
         new RegExp(`CREATE TABLE (?:IF NOT EXISTS )?"${table}"`),

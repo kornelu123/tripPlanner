@@ -87,6 +87,22 @@ const initialData: TripEditorData = {
       latitude: 38,
       longitude: -9,
       categoryId: 'food',
+      price: {
+        status: 'success',
+        minimumAmount: 8,
+        maximumAmount: 24,
+        currency: 'EUR',
+        unit: 'typical_meal',
+        confidence: 0.8,
+        lastCheckedAt: '2026-09-01T10:00:00Z',
+        stale: true,
+        sources: [
+          {
+            url: 'https://cafe.example/menu',
+            type: 'official_structured_data',
+          },
+        ],
+      },
     },
   ],
 };
@@ -132,6 +148,9 @@ describe('TripEditor', () => {
           points.push(created);
           return Response.json(created, { status: 201 });
         }
+        if (url.endsWith('/price') && init?.method === 'POST') {
+          return Response.json({ status: 'queued' }, { status: 202 });
+        }
         const id = url.split('/').at(-1)!;
         if (init?.method === 'PATCH') {
           const updated = {
@@ -176,6 +195,31 @@ describe('TripEditor', () => {
     await user.click(screen.getByRole('button', { name: 'Add to trip' }));
     expect(
       await screen.findByText('Social place', { selector: 'strong' }),
+    ).toBeTruthy();
+  });
+
+  it('distinguishes sourced estimates, stale data, loading, and unavailable prices', async () => {
+    const user = userEvent.setup();
+    render(<TripEditor tripId="test" />);
+    const section = await screen.findByLabelText(
+      'Estimated price for First place',
+    );
+    expect(section.textContent).toContain('8–24 EUR');
+    expect(section.textContent).toContain('typical meal');
+    expect(section.textContent).toContain('80% confidence');
+    expect(section.textContent).toContain('Stale estimate');
+    expect(section.textContent).toContain('Actual prices may differ');
+    expect(
+      screen
+        .getByRole('link', { name: 'official structured data' })
+        .getAttribute('href'),
+    ).toBe('https://cafe.example/menu');
+    await user.click(screen.getByRole('button', { name: 'Refresh price' }));
+    expect(await screen.findByText('Researching current prices…')).toBeTruthy();
+    expect(
+      await screen.findByText(
+        'Price research queued. It runs in the background.',
+      ),
     ).toBeTruthy();
   });
 

@@ -199,6 +199,10 @@ export function updateTripPoint(
   return point;
 }
 
+export function findTripPoint(tripId: string, pointId: string) {
+  return getTripEditorData(tripId).points.find(({ id }) => id === pointId);
+}
+
 export function deleteTripPoint(tripId: string, pointId: string): boolean {
   const data = getTripEditorData(tripId);
   const previousLength = data.points.length;

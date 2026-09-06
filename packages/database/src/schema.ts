@@ -6,6 +6,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgTable,
   primaryKey,
   text,
@@ -179,6 +180,29 @@ export const places = pgTable(
       .where(sql`${table.providerId} IS NOT NULL`),
   ],
 );
+
+export interface StoredPriceSource {
+  url: string;
+  type: string;
+  retrievedAt: string;
+}
+
+export const placePriceEstimates = pgTable('place_price_estimates', {
+  placeId: uuid('place_id')
+    .primaryKey()
+    .references(() => places.id, { onDelete: 'cascade' }),
+  priceLevel: varchar('price_level', { length: 20 }).notNull(),
+  minimumAmount: numeric('minimum_amount', { precision: 12, scale: 2 }),
+  maximumAmount: numeric('maximum_amount', { precision: 12, scale: 2 }),
+  currency: varchar('currency', { length: 3 }).notNull(),
+  unit: varchar('unit', { length: 30 }).notNull(),
+  sources: jsonb('sources').$type<StoredPriceSource[]>().default([]).notNull(),
+  admissionPrices: jsonb('admission_prices').default([]).notNull(),
+  originalAmounts: jsonb('original_amounts'),
+  confidence: numeric('confidence', { precision: 4, scale: 3 }).notNull(),
+  lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }).notNull(),
+  updatedAt: timestamps.updatedAt,
+});
 
 export const categories = pgTable(
   'categories',

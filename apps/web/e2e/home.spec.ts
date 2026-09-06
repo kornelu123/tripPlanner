@@ -1,6 +1,16 @@
 import { expect, test } from '@playwright/test';
 
 test('renders the responsive trip planning shell', async ({ page }) => {
+  await page.route('**/api/trips/demo/points', (route) =>
+    route.fulfill({
+      json: {
+        trip: { id: 'demo', name: 'Demo trip' },
+        categories: [],
+        points: [],
+        pendingImports: [],
+      },
+    }),
+  );
   const consoleErrors: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());

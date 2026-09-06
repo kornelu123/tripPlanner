@@ -92,3 +92,67 @@ export interface SocialSearchRequest {
 export interface SocialPlatformProvider {
   searchPosts(request: SocialSearchRequest): Promise<SocialPost[]>;
 }
+
+export type PriceLevel = 'budget' | 'moderate' | 'expensive' | 'premium';
+export type PriceUnit =
+  | 'per_person'
+  | 'admission'
+  | 'typical_meal'
+  | 'per_night'
+  | 'other';
+export type PriceSourceType =
+  | 'official_api'
+  | 'ticketing_api'
+  | 'search_result'
+  | 'official_structured_data'
+  | 'public_page'
+  | 'local_average';
+
+export interface PriceResearchInput {
+  placeName: string;
+  category: string;
+  coordinates: Coordinates;
+  formattedAddress: string;
+  currency: string;
+  country: string;
+}
+
+export interface OriginalPrice {
+  amount: number;
+  currency: string;
+  exchangeRateDate?: string;
+}
+
+export interface AdmissionPrice {
+  audience: 'adult' | 'child' | 'student' | 'senior' | 'general';
+  amount: number;
+  currency: string;
+  original?: OriginalPrice;
+}
+
+export interface PriceSource {
+  url: string;
+  type: PriceSourceType;
+  retrievedAt: Date;
+}
+
+export interface PriceResearchResult {
+  priceLevel: PriceLevel;
+  minimumAmount?: number;
+  maximumAmount?: number;
+  currency: string;
+  unit: PriceUnit;
+  sourceUrl: string;
+  sourceType: PriceSourceType;
+  retrievedAt: Date;
+  confidence: number;
+  sources?: PriceSource[];
+  admissionPrices?: AdmissionPrice[];
+  originalMinimum?: OriginalPrice;
+  originalMaximum?: OriginalPrice;
+}
+
+/** Implementations convert SDK responses before crossing this boundary. */
+export interface PriceResearchProvider {
+  research(input: PriceResearchInput): Promise<PriceResearchResult | null>;
+}

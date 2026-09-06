@@ -1,0 +1,10 @@
+{
+  "@context": "https://schema.org",
+  "@type": "TouristAttraction",
+  "offers": [
+    { "name": "Adult admission", "price": "18", "priceCurrency": "EUR" },
+    { "name": "Child admission", "price": "0", "priceCurrency": "EUR" },
+    { "name": "Student admission", "price": "9", "priceCurrency": "EUR" },
+    { "name": "Senior admission", "price": "12", "priceCurrency": "EUR" }
+  ]
+}

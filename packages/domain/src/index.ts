@@ -14,9 +14,26 @@ export type {
   SocialPost,
   SocialSearchRequest,
   TravelMode,
+  AdmissionPrice,
+  OriginalPrice,
+  PriceLevel,
+  PriceResearchInput,
+  PriceResearchProvider,
+  PriceResearchResult,
+  PriceSource,
+  PriceSourceType,
+  PriceUnit,
 } from './providers';
 export { UnreachableRouteError } from './providers';
 export { routeOptimizer } from './route-optimizer';
+export {
+  calculateConfidence,
+  isStalePrice,
+  mergePriceResults,
+  normalizeAmount,
+  normalizeCurrency,
+  PriceResearchService,
+} from './price-research';
 export {
   extractLocationCandidates,
   transitionSocialImport,
