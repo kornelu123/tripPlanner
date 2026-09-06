@@ -130,9 +130,12 @@ export default function TripMap({
         sources: {
           osm: {
             type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tiles: [
+              'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+            ],
             tileSize: 256,
-            attribution: '© OpenStreetMap contributors',
+            attribution:
+              '© OpenStreetMap contributors © CARTO',
           },
         },
         layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
@@ -158,13 +161,31 @@ export default function TripMap({
         data: routeCollection(routePlanRef.current),
       });
       map.addLayer({
+        id: 'trip-route-casing',
+        type: 'line',
+        source: 'trip-route',
+        layout: {
+          'line-cap': 'round',
+          'line-join': 'round',
+        },
+        paint: {
+          'line-color': '#1a5dcc',
+          'line-width': 9,
+          'line-opacity': 0.72,
+        },
+      });
+      map.addLayer({
         id: 'trip-route-line',
         type: 'line',
         source: 'trip-route',
+        layout: {
+          'line-cap': 'round',
+          'line-join': 'round',
+        },
         paint: {
-          'line-color': '#e96f43',
-          'line-width': 5,
-          'line-opacity': 0.9,
+          'line-color': '#4285f4',
+          'line-width': 6,
+          'line-opacity': 1,
         },
       });
       map.addLayer({
