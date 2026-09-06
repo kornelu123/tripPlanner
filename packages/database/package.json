@@ -1,0 +1,27 @@
+{
+  "name": "@trip-planner/database",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@trip-planner/config": "workspace:*",
+    "drizzle-orm": "0.45.1",
+    "pg": "8.18.0",
+    "redis": "5.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@types/pg": "8.16.0",
+    "drizzle-kit": "0.31.8",
+    "typescript": "5.9.3"
+  }
+}

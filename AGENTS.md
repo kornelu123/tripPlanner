@@ -157,29 +157,29 @@ Boris Cherny (creator of Claude Code) keeps his team's file around 100 lines. Un
 - Runtime / deployment target:
 
 ### Commands
-- Install: `TODO`
-- Build: `TODO`
-- Test (all): `TODO`
-- Test (single file): `TODO`
-- Lint: `TODO`
-- Typecheck: `TODO`
-- Run locally: `TODO`
+- Install: `pnpm install`
+- Build: `pnpm build`
+- Test (all): `pnpm test && pnpm test:e2e`
+- Test (single file): `pnpm --filter @trip-planner/domain test -- src/providers.test.ts`
+- Lint: `pnpm lint`
+- Typecheck: `pnpm typecheck`
+- Run locally: `pnpm dev`
 
 Prefer single-file or single-test runs during iteration. Full suites are for the final verification pass.
 
 ### Layout
-- Source lives in: `TODO`
-- Tests live in: `TODO`
-- Do not modify: `TODO` (generated code, vendored deps, legacy areas)
+- Source lives in: `apps/web/src and packages/*/src`
+- Tests live in: `packages/*/src/*.test.ts and apps/web/e2e`
+- Do not modify: `node_modules, .next, dist, and generated migration metadata` (generated code, vendored deps, legacy areas)
 
 ### Conventions specific to this repo
-- Naming: `TODO`
-- Import style: `TODO`
-- Error handling pattern: `TODO`
-- Testing pattern and framework: `TODO`
+- Naming: `PascalCase for types and components; camelCase for functions and values`
+- Import style: `ES modules with explicit type-only imports where applicable`
+- Error handling pattern: `validate configuration at infrastructure boundaries and omit sensitive error details from HTTP responses`
+- Testing pattern and framework: `Vitest for unit tests and Playwright for browser tests`
 
 ### Forbidden
-- `TODO`: things that look reasonable but will break this project.
+- `Importing provider SDK types into packages/domain`: things that look reasonable but will break this project.
 
 ---
 
