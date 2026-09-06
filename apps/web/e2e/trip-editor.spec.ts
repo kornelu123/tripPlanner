@@ -137,6 +137,10 @@ test('edits trip points with accessible controls', async ({
     page.getByRole('heading', { name: 'Lisbon long weekend' }),
   ).toBeVisible();
   await expect(page.getByLabel('Trip points map')).toBeVisible();
+  await expect(page.getByLabel('Trip points map')).toHaveAttribute(
+    'data-route-segments',
+    '1',
+  );
 
   await page.getByLabel('Search for an address').fill('Jerónimos');
   await page.getByRole('button', { name: 'Search' }).click();
