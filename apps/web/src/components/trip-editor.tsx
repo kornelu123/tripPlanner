@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import { LazyTripMap } from './lazy-trip-map';
+import { LocationDetails } from './location-details';
+import { PlaceSearch } from './place-search';
 import type {
   PendingImport,
   Category,
@@ -34,8 +36,6 @@ export function TripEditor({ tripId }: { tripId: string }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<PointDraft | null>(null);
   const [movingPoint, setMovingPoint] = useState<TripPoint | null>(null);
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<PointDraft[]>([]);
   const [status, setStatus] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [newCategory, setNewCategory] = useState({
@@ -50,10 +50,16 @@ export function TripEditor({ tripId }: { tripId: string }) {
   const [fixedStartId, setFixedStartId] = useState('');
   const [fixedEndId, setFixedEndId] = useState('');
   const [activeView, setActiveView] = useState<'places' | 'map'>('map');
-  const [mapState, setMapState] = useState<'loading' | 'ready' | 'error'>(
-    'loading',
-  );
+  const [mapState, setMapState] = useState<
+    'loading' | 'ready' | 'missing-key' | 'quota' | 'network'
+  >('loading');
   const [mapKey, setMapKey] = useState(0);
+  const [mapBounds, setMapBounds] = useState<google.maps.LatLngBounds | null>(
+    null,
+  );
+  const [selectedLeg, setSelectedLeg] = useState<
+    RoutePlan['legs'][number] | null
+  >(null);
   const [searchState, setSearchState] = useState<
     'idle' | 'loading' | 'empty' | 'error'
   >('idle');
@@ -77,6 +83,11 @@ export function TripEditor({ tripId }: { tripId: string }) {
         setRouteOrder(
           loaded.routePlan?.pointIds ?? loaded.points.map(({ id }) => id),
         );
+        const locationId = new URL(window.location.href).searchParams.get(
+          'location',
+        );
+        if (locationId && loaded.points.some(({ id }) => id === locationId))
+          setSelectedId(locationId);
         if (loaded.routePlan) {
           setTravelMode(loaded.routePlan.mode);
           setRoundTrip(loaded.routePlan.roundTrip);
@@ -111,8 +122,21 @@ export function TripEditor({ tripId }: { tripId: string }) {
 
   const selectPoint = useCallback((id: string) => {
     setSelectedId(id);
-    document.getElementById(`point-${id}`)?.focus();
+    const url = new URL(window.location.href);
+    url.searchParams.set('location', id);
+    window.history.replaceState(null, '', url);
+    document
+      .getElementById(`point-${id}`)
+      ?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+    setActiveView('map');
   }, []);
+
+  function chooseGooglePlace(place: PointDraft) {
+    setDraft(place);
+    setSelectedId(`google:${place.googlePlaceId}`);
+    setSearchState('idle');
+    setActiveView('map');
+  }
 
   const beginDraftAt = useCallback(
     async (latitude: number, longitude: number) => {
@@ -150,27 +174,9 @@ export function TripEditor({ tripId }: { tripId: string }) {
         },
     );
     setDraft(null);
-    setResults([]);
     setSelectedId(point.id);
     setRouteOrder((current) => [...current, point.id]);
     setStatus(`${point.name} added.`);
-  }
-
-  async function search(event?: React.FormEvent) {
-    event?.preventDefault();
-    setSearchState('loading');
-    try {
-      const response = await fetch(
-        `/api/geocode?q=${encodeURIComponent(query)}`,
-      );
-      if (!response.ok) throw new Error();
-      const nextResults = (await response.json()) as PointDraft[];
-      setResults(nextResults);
-      setSearchState(nextResults.length ? 'idle' : 'empty');
-    } catch {
-      setResults([]);
-      setSearchState('error');
-    }
   }
 
   function useLocation() {
@@ -539,39 +545,21 @@ export function TripEditor({ tripId }: { tripId: string }) {
             </button>
           </div>
 
-          <form className="search-form" onSubmit={search}>
-            <label htmlFor="address-search">Search for an address</label>
-            <div>
-              <input
-                id="address-search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Museum, café, or address"
-              />
-              <button type="submit">Search</button>
-            </div>
-          </form>
-          {results.length > 0 && (
-            <ul className="search-results" aria-label="Address results">
-              {results.map((result) => (
-                <li key={`${result.latitude}-${result.longitude}`}>
-                  <button type="button" onClick={() => setDraft(result)}>
-                    <strong>{result.name}</strong>
-                    <span>{result.address}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="search-form">
+            <label htmlFor="address-search">Search Google Places</label>
+            <PlaceSearch
+              bounds={mapBounds}
+              onChoose={chooseGooglePlace}
+              onError={() => setSearchState('error')}
+            />
+          </div>
           <div className="resource-state" role="status" aria-live="polite">
             {searchState === 'loading' && 'Searching for places…'}
             {searchState === 'empty' && 'No places matched your search.'}
             {searchState === 'error' && (
               <>
-                Geocoding is unavailable.{' '}
-                <button type="button" onClick={() => void search()}>
-                  Retry search
-                </button>
+                Google Places is unavailable. Check the map configuration and
+                retry.
               </>
             )}
           </div>
@@ -876,7 +864,14 @@ export function TripEditor({ tripId }: { tripId: string }) {
                   >
                     <span>{index + 1}</span>
                     <span>
-                      <strong>Route stop: {point.name}</strong>
+                      <button
+                        type="button"
+                        className="route-stop-select"
+                        aria-label={`Select route stop ${index + 1}`}
+                        onClick={() => selectPoint(point.id)}
+                      >
+                        <strong>Route stop: {point.name}</strong>
+                      </button>
                       <small>Drag to reorder</small>
                     </span>
                   </li>
@@ -915,11 +910,13 @@ export function TripEditor({ tripId }: { tripId: string }) {
               <ol className="leg-list" aria-label="Route legs">
                 {data.routePlan.legs.map((leg, index) => (
                   <li key={`${leg.fromPointId}-${leg.toPointId}`}>
-                    <span>Leg {index + 1}</span>
-                    <strong>
-                      {(leg.distanceMeters / 1000).toFixed(1)} km ·{' '}
-                      {Math.round(leg.durationSeconds / 60)} min
-                    </strong>
+                    <button type="button" onClick={() => setSelectedLeg(leg)}>
+                      <span>Leg {index + 1}</span>
+                      <strong>
+                        {(leg.distanceMeters / 1000).toFixed(1)} km ·{' '}
+                        {Math.round(leg.durationSeconds / 60)} min
+                      </strong>
+                    </button>
                   </li>
                 ))}
               </ol>
@@ -1077,9 +1074,20 @@ export function TripEditor({ tripId }: { tripId: string }) {
               <p className="empty-state">No social imports are waiting.</p>
             )}
             {data.pendingImports.map((item) => (
-              <article key={item.id}>
+              <article
+                key={item.id}
+                className={selectedId === `import:${item.id}` ? 'selected' : ''}
+              >
                 <div>
-                  <strong>{item.name}</strong>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedId(`import:${item.id}`);
+                      setDraft({ ...item, pendingImportId: item.id });
+                    }}
+                  >
+                    <strong>{item.name}</strong>
+                  </button>
                   <span>{item.source}</span>
                 </div>
                 <button type="button" onClick={() => addPending(item)}>
@@ -1096,7 +1104,18 @@ export function TripEditor({ tripId }: { tripId: string }) {
         >
           <LazyTripMap
             key={mapKey}
-            points={visiblePoints}
+            points={
+              draft?.googlePlaceId
+                ? [
+                    ...visiblePoints,
+                    {
+                      ...draft,
+                      id: `google:${draft.googlePlaceId}`,
+                      categoryId: `${tripId}-uncategorized`,
+                    },
+                  ]
+                : visiblePoints
+            }
             categories={data.categories}
             selectedId={selectedId}
             movingPoint={movingPoint}
@@ -1108,13 +1127,19 @@ export function TripEditor({ tripId }: { tripId: string }) {
               void moveCoordinates(latitude, longitude)
             }
             onStatus={setMapState}
+            onBoundsChange={setMapBounds}
+            onSelectLeg={setSelectedLeg}
           />
           {mapState !== 'ready' && (
             <div className="map-state" role="status" aria-live="polite">
               {mapState === 'loading'
                 ? 'Loading map tiles…'
-                : 'Map tiles could not load.'}
-              {mapState === 'error' && (
+                : mapState === 'missing-key'
+                  ? 'Google Maps is not configured. Add the browser API key.'
+                  : mapState === 'quota'
+                    ? 'Google Maps quota was exceeded. Try again later.'
+                    : 'Google Maps could not load because of a network failure.'}
+              {mapState !== 'loading' && (
                 <button
                   type="button"
                   onClick={() => {
@@ -1190,6 +1215,41 @@ export function TripEditor({ tripId }: { tripId: string }) {
                 Cancel move
               </button>
             </form>
+          )}
+          <LocationDetails
+            location={
+              selectedId?.startsWith('google:') ||
+              selectedId?.startsWith('import:')
+                ? draft
+                : (data.points.find(({ id }) => id === selectedId) ?? null)
+            }
+            category={data.categories.find(
+              ({ id }) =>
+                id ===
+                data.points.find(({ id }) => id === selectedId)?.categoryId,
+            )}
+            pending={Boolean(
+              selectedId?.startsWith('google:') ||
+              selectedId?.startsWith('import:'),
+            )}
+            onAdd={draft ? () => void addPoint(draft) : undefined}
+            onRemove={
+              selectedId && !selectedId.includes(':')
+                ? () => {
+                    const point = data.points.find(
+                      ({ id }) => id === selectedId,
+                    );
+                    if (point) void deletePoint(point);
+                  }
+                : undefined
+            }
+            onRoute={() => setFixedEndId(selectedId ?? '')}
+          />
+          {selectedLeg && (
+            <div className="route-leg-details" role="status">
+              Route leg: {(selectedLeg.distanceMeters / 1000).toFixed(1)} km ·{' '}
+              {Math.round(selectedLeg.durationSeconds / 60)} min
+            </div>
           )}
         </section>
       </div>
