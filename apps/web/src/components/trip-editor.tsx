@@ -1100,6 +1100,7 @@ export function TripEditor({ tripId }: { tripId: string }) {
             categories={data.categories}
             selectedId={selectedId}
             movingPoint={movingPoint}
+            routeOrder={routeOrder}
             routePlan={data.routePlan}
             onSelect={selectPoint}
             onAddCoordinates={beginDraftAt}

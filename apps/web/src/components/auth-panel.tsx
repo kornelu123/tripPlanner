@@ -28,7 +28,11 @@ async function jsonFetch(url: string, init?: RequestInit) {
   return body;
 }
 
-export function SignInPanel() {
+export function SignInPanel({
+  mode = 'login',
+}: {
+  mode?: 'login' | 'register';
+}) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
@@ -82,8 +86,12 @@ export function SignInPanel() {
   }
   return (
     <div className="auth-card">
-      <h1>Welcome to Roamly</h1>
-      <p>Use a passkey for phishing-resistant sign in.</p>
+      <h1>{mode === 'register' ? 'Create your account' : 'Welcome back'}</h1>
+      <p>
+        {mode === 'register'
+          ? 'Create a passkey for secure, password-free access.'
+          : 'Use your passkey for phishing-resistant login.'}
+      </p>
       <label>
         Email
         <input
@@ -93,27 +101,38 @@ export function SignInPanel() {
           autoComplete="email"
         />
       </label>
-      <label>
-        Name (new accounts)
-        <input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          autoComplete="name"
-        />
-      </label>
+      {mode === 'register' && (
+        <label>
+          Name
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            autoComplete="name"
+          />
+        </label>
+      )}
       <div className="auth-actions">
-        <button onClick={() => passkey(false)}>Sign in with a passkey</button>
-        <button className="secondary" onClick={() => passkey(true)}>
-          Create account with a passkey
+        <button onClick={() => passkey(mode === 'register')}>
+          {mode === 'register'
+            ? 'Create account with a passkey'
+            : 'Log in with a passkey'}
         </button>
         <a className="apple-button" href="/api/auth/apple/start">
-          Sign in with Apple
+          {mode === 'register' ? 'Sign up with Apple' : 'Log in with Apple'}
         </a>
-        <button className="link-button" onClick={recover}>
-          Email me a recovery link
-        </button>
+        {mode === 'login' && (
+          <button className="link-button" onClick={recover}>
+            Email me a login link
+          </button>
+        )}
       </div>
       <p role="status">{message}</p>
+      <p className="auth-switch">
+        {mode === 'register' ? 'Already have an account?' : 'New to Roamly?'}{' '}
+        <a href={mode === 'register' ? '/login' : '/register'}>
+          {mode === 'register' ? 'Log in' : 'Create an account'}
+        </a>
+      </p>
     </div>
   );
 }

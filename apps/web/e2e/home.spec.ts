@@ -30,6 +30,14 @@ test('renders the responsive trip planning shell', async ({ page }) => {
     'href',
     '/trips/demo',
   );
+  await expect(page.getByRole('link', { name: 'Log in' })).toHaveAttribute(
+    'href',
+    '/login',
+  );
+  await expect(page.getByRole('link', { name: 'Register' })).toHaveAttribute(
+    'href',
+    '/register',
+  );
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute(
     'href',
     '/manifest.webmanifest',

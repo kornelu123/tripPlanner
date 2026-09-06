@@ -19,6 +19,7 @@ interface TripMapProps {
   categories: Category[];
   selectedId: string | null;
   movingPoint: TripPoint | null;
+  routeOrder: string[];
   routePlan?: RoutePlan;
   onSelect: (id: string) => void;
   onAddCoordinates: (latitude: number, longitude: number) => void;
@@ -50,7 +51,14 @@ function pointCollection(
   };
 }
 
-function routeCollection(routePlan?: RoutePlan): FeatureCollection<LineString> {
+function routeCollection(
+  points: TripPoint[],
+  routeOrder: string[],
+  routePlan?: RoutePlan,
+): FeatureCollection<LineString> {
+  const orderedPoints = routeOrder
+    .map((id) => points.find((point) => point.id === id))
+    .filter((point): point is TripPoint => Boolean(point));
   return {
     type: 'FeatureCollection',
     features: routePlan
@@ -65,7 +73,21 @@ function routeCollection(routePlan?: RoutePlan): FeatureCollection<LineString> {
             ]),
           },
         }))
-      : [],
+      : orderedPoints.length > 1
+        ? [
+            {
+              type: 'Feature',
+              properties: { preview: true },
+              geometry: {
+                type: 'LineString',
+                coordinates: orderedPoints.map(({ longitude, latitude }) => [
+                  longitude,
+                  latitude,
+                ]),
+              },
+            },
+          ]
+        : [],
   };
 }
 
@@ -74,6 +96,7 @@ export default function TripMap({
   categories,
   selectedId,
   movingPoint,
+  routeOrder,
   routePlan,
   onSelect,
   onAddCoordinates,
@@ -88,6 +111,7 @@ export default function TripMap({
   const categoriesRef = useRef(categories);
   const selectedIdRef = useRef(selectedId);
   const routePlanRef = useRef(routePlan);
+  const routeOrderRef = useRef(routeOrder);
   const callbacksRef = useRef({
     onSelect,
     onAddCoordinates,
@@ -107,6 +131,7 @@ export default function TripMap({
     categoriesRef.current = categories;
     selectedIdRef.current = selectedId;
     routePlanRef.current = routePlan;
+    routeOrderRef.current = routeOrder;
   }, [
     movingPoint,
     onAddCoordinates,
@@ -117,6 +142,7 @@ export default function TripMap({
     categories,
     selectedId,
     routePlan,
+    routeOrder,
   ]);
 
   useEffect(() => {
@@ -134,15 +160,13 @@ export default function TripMap({
               'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
             ],
             tileSize: 256,
-            attribution:
-              '© OpenStreetMap contributors © CARTO',
+            attribution: '© OpenStreetMap contributors © CARTO',
           },
         },
         layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
       },
     });
     map.addControl(new NavigationControl(), 'top-right');
-    map.on('error', () => callbacksRef.current.onStatus('error'));
     map.on('load', () => {
       callbacksRef.current.onStatus('ready');
       map.addSource('trip-points', {
@@ -158,7 +182,11 @@ export default function TripMap({
       });
       map.addSource('trip-route', {
         type: 'geojson',
-        data: routeCollection(routePlanRef.current),
+        data: routeCollection(
+          pointsRef.current,
+          routeOrderRef.current,
+          routePlanRef.current,
+        ),
       });
       map.addLayer({
         id: 'trip-route-casing',
@@ -172,6 +200,7 @@ export default function TripMap({
           'line-color': '#1a5dcc',
           'line-width': 9,
           'line-opacity': 0.72,
+          'line-dasharray': [1, 0],
         },
       });
       map.addLayer({
@@ -289,8 +318,20 @@ export default function TripMap({
         pointCollection(points, categories, routePlan),
       );
       (map.getSource('trip-route') as GeoJSONSource | undefined)?.setData(
-        routeCollection(routePlan),
+        routeCollection(points, routeOrder, routePlan),
       );
+      if (map.getLayer('trip-route-casing')) {
+        map.setPaintProperty(
+          'trip-route-casing',
+          'line-dasharray',
+          routePlan ? [1, 0] : [1, 1.5],
+        );
+        map.setPaintProperty(
+          'trip-route-line',
+          'line-dasharray',
+          routePlan ? [1, 0] : [1, 1.5],
+        );
+      }
       if (map.getLayer('points')) {
         map.setPaintProperty('points', 'circle-radius', [
           'case',
@@ -309,7 +350,7 @@ export default function TripMap({
     };
     if (map.loaded()) update();
     else map.once('load', update);
-  }, [categories, points, routePlan, selectedId]);
+  }, [categories, points, routeOrder, routePlan, selectedId]);
 
   useEffect(() => {
     moveMarkerRef.current?.remove();
@@ -331,6 +372,9 @@ export default function TripMap({
       ref={containerRef}
       role="region"
       aria-label="Trip points map"
+      data-route-segments={
+        routePlan?.legs.length ?? Math.max(0, routeOrder.length - 1)
+      }
     />
   );
 }
