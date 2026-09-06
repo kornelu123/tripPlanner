@@ -29,6 +29,41 @@ export interface TripEditorData {
   points: TripPoint[];
   pendingImports: PendingImport[];
   categories: Category[];
+  routePlan?: RoutePlan;
+  previousRoutePlan?: RoutePlan;
+}
+
+export type TravelMode = 'walking' | 'driving';
+
+export interface RouteLeg {
+  fromPointId: string;
+  toPointId: string;
+  distanceMeters: number;
+  durationSeconds: number;
+  geometry: Array<{ latitude: number; longitude: number }>;
+}
+
+export interface RoutePlan {
+  id: string;
+  pointIds: string[];
+  mode: TravelMode;
+  roundTrip: boolean;
+  fixedStartId?: string;
+  fixedEndId?: string;
+  totalDistanceMeters: number;
+  totalDurationSeconds: number;
+  optimizationMethod: 'exact' | 'heuristic' | 'manual';
+  provider: { provider: string; profile: string; attribution?: string };
+  legs: RouteLeg[];
+}
+
+export interface RoutePlanRequest {
+  pointIds: string[];
+  mode: TravelMode;
+  roundTrip: boolean;
+  fixedStartId?: string;
+  fixedEndId?: string;
+  optimize?: boolean;
 }
 
 export interface PointDraft {

@@ -545,6 +545,111 @@ select {
   padding: 0;
   list-style: none;
 }
+.route-planner {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 22px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #f7f3e9;
+}
+.route-title,
+.route-actions,
+.leg-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+}
+.route-title h2 {
+  margin: 2px 0 0;
+  font:
+    700 21px 'Playfair Display',
+    serif;
+}
+.route-title > strong {
+  color: #397a65;
+  font-size: 13px;
+}
+.route-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.route-options label {
+  display: grid;
+  gap: 4px;
+  color: #526c64;
+  font-size: 11px;
+  font-weight: 600;
+}
+.route-options .round-trip {
+  display: flex;
+  align-items: center;
+}
+.route-options .round-trip input {
+  min-width: auto;
+}
+.route-order,
+.leg-list {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.route-order li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px;
+  border: 1px solid #d7d4c8;
+  border-radius: 8px;
+  background: white;
+  cursor: grab;
+}
+.route-order li > span:first-child {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: var(--orange);
+  font-size: 11px;
+}
+.route-order li > span:last-child {
+  display: grid;
+}
+.route-order small,
+.leg-list span {
+  color: #70847e;
+  font-size: 10px;
+}
+.route-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+.route-actions button {
+  padding: 8px 10px;
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  background: white;
+  font-size: 11px;
+  font-weight: 600;
+}
+.route-actions button:first-child {
+  color: white;
+  background: var(--ink);
+}
+.route-actions button:disabled {
+  opacity: 0.45;
+}
+.leg-list {
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
 .search-results {
   margin: 0 0 10px;
   border: 1px solid var(--line);

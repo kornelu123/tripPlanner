@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
   check,
+  boolean,
   customType,
   index,
   integer,
@@ -178,11 +179,35 @@ export const routes = pgTable(
       .references(() => trips.id, { onDelete: 'cascade' }),
     providerId: varchar('provider_id', { length: 255 }),
     mode: varchar('mode', { length: 20 }).notNull(),
+    roundTrip: boolean('round_trip').default(false).notNull(),
+    fixedStartTripPointId: uuid('fixed_start_trip_point_id').references(
+      () => tripPoints.id,
+      { onDelete: 'set null' },
+    ),
+    fixedEndTripPointId: uuid('fixed_end_trip_point_id').references(
+      () => tripPoints.id,
+      { onDelete: 'set null' },
+    ),
+    pointOrder: jsonb('point_order').$type<string[]>().default([]).notNull(),
+    optimizationMethod: varchar('optimization_method', { length: 20 })
+      .default('manual')
+      .notNull(),
+    providerMetadata: jsonb('provider_metadata')
+      .$type<Record<string, string>>()
+      .default({})
+      .notNull(),
     distanceMeters: integer('distance_meters'),
     durationSeconds: integer('duration_seconds'),
     ...timestamps,
   },
-  (table) => [index('routes_trip_id_idx').on(table.tripId)],
+  (table) => [
+    index('routes_trip_id_idx').on(table.tripId),
+    check('routes_mode_check', sql`${table.mode} IN ('driving', 'walking')`),
+    check(
+      'routes_optimization_method_check',
+      sql`${table.optimizationMethod} IN ('exact', 'heuristic', 'manual')`,
+    ),
+  ],
 );
 
 export const routeLegs = pgTable(

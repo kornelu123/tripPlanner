@@ -10,6 +10,8 @@ import type {
   PointDraft,
   TripEditorData,
   TripPoint,
+  RoutePlan,
+  TravelMode,
 } from '@/lib/trip-editor-types';
 
 const emptyDraft: PointDraft = {
@@ -41,6 +43,12 @@ export function TripEditor({ tripId }: { tripId: string }) {
     color: '#397a65',
     icon: 'pin',
   });
+  const [routeOrder, setRouteOrder] = useState<string[]>([]);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [travelMode, setTravelMode] = useState<TravelMode>('walking');
+  const [roundTrip, setRoundTrip] = useState(false);
+  const [fixedStartId, setFixedStartId] = useState('');
+  const [fixedEndId, setFixedEndId] = useState('');
 
   useEffect(() => {
     fetch(`/api/trips/${tripId}/points`)
@@ -48,7 +56,18 @@ export function TripEditor({ tripId }: { tripId: string }) {
         if (!response.ok) throw new Error('Could not load this trip.');
         return response.json() as Promise<TripEditorData>;
       })
-      .then(setData)
+      .then((loaded) => {
+        setData(loaded);
+        setRouteOrder(
+          loaded.routePlan?.pointIds ?? loaded.points.map(({ id }) => id),
+        );
+        if (loaded.routePlan) {
+          setTravelMode(loaded.routePlan.mode);
+          setRoundTrip(loaded.routePlan.roundTrip);
+          setFixedStartId(loaded.routePlan.fixedStartId ?? '');
+          setFixedEndId(loaded.routePlan.fixedEndId ?? '');
+        }
+      })
       .catch((error: Error) => setStatus(error.message));
   }, [tripId]);
 
@@ -95,6 +114,7 @@ export function TripEditor({ tripId }: { tripId: string }) {
     setDraft(null);
     setResults([]);
     setSelectedId(point.id);
+    setRouteOrder((current) => [...current, point.id]);
     setStatus(`${point.name} added.`);
   }
 
@@ -261,7 +281,75 @@ export function TripEditor({ tripId }: { tripId: string }) {
         },
     );
     if (selectedId === point.id) setSelectedId(null);
+    setRouteOrder((current) => current.filter((id) => id !== point.id));
     setStatus(`${point.name} deleted.`);
+  }
+
+  async function calculateRoute(optimize: boolean) {
+    setStatus('Calculating route…');
+    const response = await fetch(`/api/trips/${tripId}/routes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pointIds: routeOrder,
+        mode: travelMode,
+        roundTrip,
+        fixedStartId: fixedStartId || undefined,
+        fixedEndId: roundTrip ? undefined : fixedEndId || undefined,
+        optimize,
+      }),
+    });
+    const result = (await response.json()) as RoutePlan | { message: string };
+    if (!response.ok) {
+      setStatus(
+        'message' in result ? result.message : 'Could not calculate route.',
+      );
+      return;
+    }
+    const routePlan = result as RoutePlan;
+    setData(
+      (current) =>
+        current && {
+          ...current,
+          previousRoutePlan: current.routePlan,
+          routePlan,
+        },
+    );
+    setRouteOrder(routePlan.pointIds);
+    setStatus('Route saved.');
+  }
+
+  async function restoreRoute() {
+    const response = await fetch(`/api/trips/${tripId}/routes`, {
+      method: 'PATCH',
+    });
+    if (!response.ok) return setStatus('There is no previous saved route.');
+    const routePlan = (await response.json()) as RoutePlan;
+    setData(
+      (current) =>
+        current && {
+          ...current,
+          previousRoutePlan: current.routePlan,
+          routePlan,
+        },
+    );
+    setRouteOrder(routePlan.pointIds);
+    setTravelMode(routePlan.mode);
+    setRoundTrip(routePlan.roundTrip);
+    setFixedStartId(routePlan.fixedStartId ?? '');
+    setFixedEndId(routePlan.fixedEndId ?? '');
+    setStatus('Previous saved route restored.');
+  }
+
+  function dropBefore(targetId: string) {
+    if (!draggedId || draggedId === targetId) return;
+    setRouteOrder((current) => {
+      const next = current.filter((id) => id !== draggedId);
+      next.splice(next.indexOf(targetId), 0, draggedId);
+      return next;
+    });
+    setDraggedId(null);
+    setStatus('Manual order changed. Recalculate to save it.');
   }
 
   if (!data) {
@@ -543,6 +631,137 @@ export function TripEditor({ tripId }: { tripId: string }) {
             </form>
           )}
 
+          <section className="route-planner" aria-labelledby="route-heading">
+            <div className="route-title">
+              <div>
+                <p className="eyebrow">Directions</p>
+                <h2 id="route-heading">Route plan</h2>
+              </div>
+              {data.routePlan && (
+                <strong>
+                  {(data.routePlan.totalDistanceMeters / 1000).toFixed(1)} km ·{' '}
+                  {Math.round(data.routePlan.totalDurationSeconds / 60)} min
+                </strong>
+              )}
+            </div>
+            <div className="route-options">
+              <label>
+                Travel mode
+                <select
+                  value={travelMode}
+                  onChange={(event) =>
+                    setTravelMode(event.target.value as TravelMode)
+                  }
+                >
+                  <option value="walking">Walking</option>
+                  <option value="driving">Driving</option>
+                </select>
+              </label>
+              <label>
+                Fixed start
+                <select
+                  value={fixedStartId}
+                  onChange={(event) => {
+                    const pointId = event.target.value;
+                    setFixedStartId(pointId);
+                    if (pointId === fixedEndId) setFixedEndId('');
+                  }}
+                >
+                  <option value="">Any stop</option>
+                  {data.points.map((point) => (
+                    <option key={point.id} value={point.id}>
+                      Start — {point.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Fixed end
+                <select
+                  disabled={roundTrip}
+                  value={fixedEndId}
+                  onChange={(event) => setFixedEndId(event.target.value)}
+                >
+                  <option value="">Any stop</option>
+                  {data.points.map((point) => (
+                    <option
+                      key={point.id}
+                      value={point.id}
+                      disabled={point.id === fixedStartId}
+                    >
+                      End — {point.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="round-trip">
+                <input
+                  type="checkbox"
+                  checked={roundTrip}
+                  onChange={(event) => setRoundTrip(event.target.checked)}
+                />
+                Return to start
+              </label>
+            </div>
+            <ol className="route-order" aria-label="Route stop order">
+              {routeOrder.map((id, index) => {
+                const point = data.points.find((item) => item.id === id);
+                if (!point) return null;
+                return (
+                  <li
+                    key={id}
+                    draggable
+                    onDragStart={() => setDraggedId(id)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={() => dropBefore(id)}
+                  >
+                    <span>{index + 1}</span>
+                    <span>
+                      <strong>Route stop: {point.name}</strong>
+                      <small>Drag to reorder</small>
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+            <div className="route-actions">
+              <button
+                type="button"
+                disabled={routeOrder.length < 2}
+                onClick={() => void calculateRoute(true)}
+              >
+                Optimize route
+              </button>
+              <button
+                type="button"
+                disabled={routeOrder.length < 2}
+                onClick={() => void calculateRoute(false)}
+              >
+                Recalculate order
+              </button>
+              <button
+                type="button"
+                disabled={!data.previousRoutePlan}
+                onClick={() => void restoreRoute()}
+              >
+                Restore previous
+              </button>
+            </div>
+            {data.routePlan && (
+              <ol className="leg-list" aria-label="Route legs">
+                {data.routePlan.legs.map((leg, index) => (
+                  <li key={`${leg.fromPointId}-${leg.toPointId}`}>
+                    <span>Leg {index + 1}</span>
+                    <strong>
+                      {(leg.distanceMeters / 1000).toFixed(1)} km ·{' '}
+                      {Math.round(leg.durationSeconds / 60)} min
+                    </strong>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+
           <ol className="point-list">
             {visiblePoints.map((point, index) => (
               <li key={point.id}>
@@ -642,6 +861,7 @@ export function TripEditor({ tripId }: { tripId: string }) {
             categories={data.categories}
             selectedId={selectedId}
             movingPoint={movingPoint}
+            routePlan={data.routePlan}
             onSelect={selectPoint}
             onAddCoordinates={beginDraftAt}
             onMoveCoordinates={(latitude, longitude) =>

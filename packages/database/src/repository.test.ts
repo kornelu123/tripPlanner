@@ -23,6 +23,7 @@ integration('trip repository', () => {
       '0000_enable_postgis_and_create_trips.sql',
       '0001_create_trip_planning_schema.sql',
       '0002_add_category_order.sql',
+      '0003_persist_route_plans.sql',
     ]) {
       const migration = await readFile(
         new URL(`../migrations/${name}`, import.meta.url),

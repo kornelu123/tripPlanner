@@ -10,21 +10,63 @@ export interface Place {
   formattedAddress?: string;
 }
 
+export type TravelMode = 'driving' | 'walking';
+
+export interface ProviderMetadata {
+  provider: string;
+  profile: string;
+  attribution?: string;
+}
+
+export interface DurationMatrix {
+  durations: (number | null)[][];
+  metadata: ProviderMetadata;
+}
+
 export interface RouteRequest {
   origin: Coordinates;
   destination: Coordinates;
   waypoints?: Coordinates[];
-  mode: 'driving' | 'walking' | 'cycling' | 'transit';
+  mode: TravelMode;
 }
 
 export interface Route {
   distanceMeters: number;
   durationSeconds: number;
   path: Coordinates[];
+  metadata: ProviderMetadata;
 }
 
 export interface RoutingProvider {
+  durationMatrix(
+    points: Coordinates[],
+    mode: TravelMode,
+  ): Promise<DurationMatrix>;
   calculateRoute(request: RouteRequest): Promise<Route>;
+}
+
+export interface RouteOptimizationRequest {
+  durations: (number | null)[][];
+  roundTrip: boolean;
+  fixedStart?: number;
+  fixedEnd?: number;
+}
+
+export interface OptimizedRoute {
+  order: number[];
+  durationSeconds: number;
+  method: 'exact' | 'heuristic';
+}
+
+export interface RouteOptimizer {
+  optimize(request: RouteOptimizationRequest): OptimizedRoute;
+}
+
+export class UnreachableRouteError extends Error {
+  constructor(message = 'No route can reach every selected stop.') {
+    super(message);
+    this.name = 'UnreachableRouteError';
+  }
 }
 
 export interface GeocodingProvider {
