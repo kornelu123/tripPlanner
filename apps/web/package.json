@@ -15,17 +15,22 @@
     "@trip-planner/config": "workspace:*",
     "@trip-planner/database": "workspace:*",
     "@trip-planner/domain": "workspace:*",
+    "maplibre-gl": "^6.7.0",
     "next": "16.1.6",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@playwright/test": "1.58.2",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/geojson": "^7946.0.16",
     "@types/node": "24.10.1",
     "@types/react": "19.2.13",
     "@types/react-dom": "19.2.3",
     "eslint": "9.39.3",
     "eslint-config-next": "16.1.6",
+    "jsdom": "^30.0.1",
     "typescript": "5.9.3",
     "vitest": "4.0.18"
   }
