@@ -440,6 +440,25 @@ export function TripEditor({ tripId }: { tripId: string }) {
           <h1>{data.trip.name}</h1>
         </div>
         <span className="point-count">{data.points.length} places</span>
+        <button
+          className="link-button"
+          type="button"
+          onClick={async () => {
+            if (
+              !confirm(
+                'Permanently delete this trip, its imports, and saved routes?',
+              )
+            )
+              return;
+            const response = await fetch(`/api/trips/${tripId}`, {
+              method: 'DELETE',
+            });
+            if (response.ok) location.href = '/';
+            else setStatus('Could not delete this trip.');
+          }}
+        >
+          Delete trip
+        </button>
       </header>
 
       <div className="editor-grid">

@@ -27,6 +27,10 @@ export async function DELETE(
       { message: 'Passkey not found.' },
       { status: 404 },
     );
+  await authRepository().recordAuditEvent(
+    'credential.passkey_removed',
+    auth.user.id,
+  );
   const rotated = await rotateSession(request, auth.user.id);
   const response = new NextResponse(null, { status: 204 });
   setSessionCookie(response, rotated.token, rotated.expiresAt);

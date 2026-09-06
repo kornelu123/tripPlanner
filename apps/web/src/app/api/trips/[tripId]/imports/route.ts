@@ -8,6 +8,7 @@ import {
   validateSocialUrl,
 } from '../../../../../lib/social-url-security';
 import { authorizeTrip } from '../../../../../lib/auth';
+import { importSchema, parseJson } from '../../../../../lib/api-schemas';
 
 interface Context {
   params: Promise<{ tripId: string }>;
@@ -24,12 +25,7 @@ export async function POST(request: Request, { params }: Context) {
   const { tripId } = await params;
   const auth = await authorizeTrip(request, tripId, true);
   if (auth.error) return auth.error;
-  let sourceUrl: unknown;
-  try {
-    sourceUrl = ((await request.json()) as { url?: unknown }).url;
-  } catch {
-    sourceUrl = undefined;
-  }
+  const sourceUrl = (await parseJson(request, importSchema))?.url;
   try {
     if (typeof sourceUrl !== 'string')
       throw new UnsafeUrlError('A post URL is required.');

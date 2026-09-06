@@ -271,6 +271,24 @@ export function AccountPanel() {
           </article>
         ))}
       </section>
+      <section>
+        <h2>Delete account</h2>
+        <p>
+          This permanently deletes your trips, imports, saved routes,
+          credentials, and sessions.
+        </p>
+        <button
+          className="link-button"
+          onClick={async () => {
+            if (!confirm('Permanently delete your account and all trip data?'))
+              return;
+            await jsonFetch('/api/account', { method: 'DELETE' });
+            location.href = '/signin';
+          }}
+        >
+          Delete my account
+        </button>
+      </section>
       <p role="status">{message}</p>
     </div>
   );

@@ -205,3 +205,9 @@ export function deleteTripPoint(tripId: string, pointId: string): boolean {
   data.points = data.points.filter(({ id }) => id !== pointId);
   return data.points.length !== previousLength;
 }
+
+export function deleteTrip(tripId: string): boolean {
+  const existed = stores.delete(tripId);
+  owners.delete(tripId);
+  return existed;
+}

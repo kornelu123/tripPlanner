@@ -188,6 +188,22 @@ export function createAuthRepository(database: Database) {
         .delete(schema.appleAccounts)
         .where(eq(schema.appleAccounts.userId, userId));
     },
+    async recordAuditEvent(
+      action: string,
+      actorUserId?: string,
+      subjectId?: string,
+    ) {
+      await database
+        .insert(schema.auditEvents)
+        .values({ action, actorUserId, subjectId });
+    },
+    async deleteUser(userId: string) {
+      const [user] = await database
+        .delete(schema.users)
+        .where(eq(schema.users.id, userId))
+        .returning();
+      return user ?? null;
+    },
     async canAccessTrip(userId: string, tripId: string, edit: boolean) {
       const repository = (await import('./repository')).createTripRepository(
         database,

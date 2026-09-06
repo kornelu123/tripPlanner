@@ -36,6 +36,13 @@
       "when": 1788912000000,
       "tag": "0004_add_authentication",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788998400000,
+      "tag": "0005_add_security_audit_events",
+      "breakpoints": true
     }
   ]
 }

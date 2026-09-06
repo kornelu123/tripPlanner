@@ -13,3 +13,7 @@ export function getSocialImport(tripId: string, importId: string) {
 export function listSocialImports(tripId: string) {
   return [...imports.values()].filter((item) => item.tripId === tripId);
 }
+export function deleteSocialImports(tripId: string) {
+  for (const [id, item] of imports)
+    if (item.tripId === tripId) imports.delete(id);
+}

@@ -12,6 +12,7 @@ import {
 } from './social-platform-adapters';
 import { getSocialImport, saveSocialImport } from './social-import-store';
 import { safeFetch } from './social-url-security';
+import { incrementMetric } from './service-metrics';
 
 const geocoder: GeocodingProvider = {
   async search(query, near) {
@@ -114,5 +115,11 @@ export async function processSocialImport(
 
 export function enqueueSocialImport(item: SocialImport) {
   saveSocialImport(item);
-  queueMicrotask(() => void processSocialImport(item.tripId, item.id));
+  incrementMetric('worker_jobs_enqueued_total');
+  queueMicrotask(
+    () =>
+      void processSocialImport(item.tripId, item.id).finally(() =>
+        incrementMetric('worker_jobs_completed_total'),
+      ),
+  );
 }
