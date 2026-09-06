@@ -67,3 +67,41 @@ test('adds current location and a pending social import', async ({
   ).toBeVisible();
   await context.close();
 });
+
+test('uses dedicated map and places views on narrow iPhones', async ({
+  page,
+}, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith('iphone'));
+  await page.route('**/api/trips/*/points', (route) =>
+    route.fulfill({
+      json: {
+        trip: { id: 'narrow', name: 'Narrow viewport trip' },
+        categories: [],
+        points: [],
+        pendingImports: [],
+      },
+    }),
+  );
+  await page.goto(`/trips/narrow-${testInfo.project.name}`);
+
+  const map = page.getByLabel('Trip points map');
+  const places = page.getByRole('region', { name: 'Places' });
+  await expect(map).toBeVisible();
+  await expect(places).toBeHidden();
+
+  await page.getByRole('button', { name: /Places/ }).click();
+  await expect(places).toBeVisible();
+  await expect(map).toBeHidden();
+
+  const addPlace = page.getByRole('button', { name: /Add place/ });
+  const box = await addPlace.boundingBox();
+  expect(box?.height).toBeGreaterThanOrEqual(44);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(
+    await page.evaluate(() => document.documentElement.clientWidth),
+  );
+
+  await page.keyboard.press('Tab');
+  await expect(page.locator(':focus-visible')).toHaveCount(1);
+});

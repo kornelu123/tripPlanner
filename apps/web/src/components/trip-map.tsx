@@ -23,6 +23,7 @@ interface TripMapProps {
   onSelect: (id: string) => void;
   onAddCoordinates: (latitude: number, longitude: number) => void;
   onMoveCoordinates: (latitude: number, longitude: number) => void;
+  onStatus: (status: 'ready' | 'error') => void;
 }
 
 function pointCollection(
@@ -77,6 +78,7 @@ export default function TripMap({
   onSelect,
   onAddCoordinates,
   onMoveCoordinates,
+  onStatus,
 }: TripMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
@@ -90,10 +92,16 @@ export default function TripMap({
     onSelect,
     onAddCoordinates,
     onMoveCoordinates,
+    onStatus,
   });
 
   useEffect(() => {
-    callbacksRef.current = { onSelect, onAddCoordinates, onMoveCoordinates };
+    callbacksRef.current = {
+      onSelect,
+      onAddCoordinates,
+      onMoveCoordinates,
+      onStatus,
+    };
     movingPointRef.current = movingPoint;
     pointsRef.current = points;
     categoriesRef.current = categories;
@@ -103,6 +111,7 @@ export default function TripMap({
     movingPoint,
     onAddCoordinates,
     onMoveCoordinates,
+    onStatus,
     onSelect,
     points,
     categories,
@@ -130,7 +139,9 @@ export default function TripMap({
       },
     });
     map.addControl(new NavigationControl(), 'top-right');
+    map.on('error', () => callbacksRef.current.onStatus('error'));
     map.on('load', () => {
+      callbacksRef.current.onStatus('ready');
       map.addSource('trip-points', {
         type: 'geojson',
         data: pointCollection(
@@ -294,6 +305,11 @@ export default function TripMap({
   }, [movingPoint]);
 
   return (
-    <div className="trip-map" ref={containerRef} aria-label="Trip points map" />
+    <div
+      className="trip-map"
+      ref={containerRef}
+      role="region"
+      aria-label="Trip points map"
+    />
   );
 }

@@ -1,7 +1,12 @@
 /* global self, caches */
 
-const CACHE_NAME = 'roamly-shell-v1';
-const APP_SHELL = ['/'];
+const CACHE_NAME = 'roamly-shell-v2';
+const APP_SHELL = [
+  '/',
+  '/manifest.webmanifest',
+  '/icons/icon.svg',
+  '/icons/icon-maskable.svg',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -46,8 +51,11 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       })
-      .catch(
-        async () => (await caches.match(event.request)) ?? caches.match('/'),
-      ),
+      .catch(async () => {
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+        if (event.request.mode === 'navigate') return caches.match('/');
+        return Response.error();
+      }),
   );
 });
