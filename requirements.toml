@@ -1,0 +1,11 @@
+# requirements.toml
+
+[sandbox.network]
+# Set the baseline to restrictive or pass-through for allowlists
+egress_policy = "restricted" 
+
+[[sandbox.network.allow]]
+host = "registry.npmjs.org"
+protocol = "tcp"
+ports = [443]
+description = "Allow Codex to pull npm packages from the public registry"
