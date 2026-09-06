@@ -15,15 +15,20 @@ import type { TripEditorData, TripPoint } from '@/lib/trip-editor-types';
 
 vi.mock('./lazy-trip-map', () => ({
   LazyTripMap: ({
+    points,
     onSelect,
     onAddCoordinates,
     onMoveCoordinates,
   }: {
+    points: TripPoint[];
     onSelect: (id: string) => void;
     onAddCoordinates: (latitude: number, longitude: number) => void;
     onMoveCoordinates: (latitude: number, longitude: number) => void;
   }) => (
     <div>
+      <output aria-label="Visible map points">
+        {points.map(({ id }) => id).join(',')}
+      </output>
       <button onClick={() => onSelect('first')}>Select map marker</button>
       <button onClick={() => onAddCoordinates(40, -8)}>Click map</button>
       <button onClick={() => onMoveCoordinates(41, -7)}>Drag marker</button>
@@ -33,7 +38,37 @@ vi.mock('./lazy-trip-map', () => ({
 
 const initialData: TripEditorData = {
   trip: { id: 'test', name: 'Test trip' },
-  categories: ['Food', 'Culture', 'Outdoors', 'Stay'],
+  categories: [
+    {
+      id: 'uncategorized',
+      name: 'Uncategorized',
+      color: '#687c76',
+      icon: 'pin',
+      position: 0,
+    },
+    {
+      id: 'food',
+      name: 'Food',
+      color: '#dc6941',
+      icon: 'fork-knife',
+      position: 1,
+    },
+    {
+      id: 'culture',
+      name: 'Culture',
+      color: '#735da5',
+      icon: 'landmark',
+      position: 2,
+    },
+    {
+      id: 'outdoors',
+      name: 'Outdoors',
+      color: '#397a65',
+      icon: 'tree',
+      position: 3,
+    },
+    { id: 'stay', name: 'Stay', color: '#3573a5', icon: 'bed', position: 4 },
+  ],
   pendingImports: [
     {
       id: 'pending',
@@ -51,7 +86,7 @@ const initialData: TripEditorData = {
       address: 'Old address',
       latitude: 38,
       longitude: -9,
-      category: 'Food',
+      categoryId: 'food',
     },
   ],
 };
@@ -92,7 +127,7 @@ describe('TripEditor', () => {
           const created = {
             ...(JSON.parse(String(init.body)) as TripPoint),
             id: `created-${createdId++}`,
-            category: 'Outdoors',
+            categoryId: 'outdoors',
           };
           points.push(created);
           return Response.json(created, { status: 201 });
@@ -157,9 +192,9 @@ describe('TripEditor', () => {
 
     await user.selectOptions(
       screen.getByRole('combobox', { name: 'Category' }),
-      'Culture',
+      'culture',
     );
-    await waitFor(() => expect(points[0]?.category).toBe('Culture'));
+    await waitFor(() => expect(points[0]?.categoryId).toBe('culture'));
 
     await user.click(screen.getByRole('button', { name: 'Move' }));
     await user.click(screen.getByRole('button', { name: 'Drag marker' }));
@@ -177,5 +212,25 @@ describe('TripEditor', () => {
 
     await user.click(screen.getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(screen.queryByText('First place')).toBeNull());
+  });
+
+  it('filters the itinerary and map with the same category selection', async () => {
+    const user = userEvent.setup();
+    render(<TripEditor tripId="test" />);
+    await screen.findByText('First place');
+    await user.selectOptions(
+      screen.getByLabelText('Filter categories'),
+      'culture',
+    );
+    expect(screen.queryByText('First place')).toBeNull();
+    expect(screen.getByLabelText('Visible map points').textContent).toBe('');
+    await user.selectOptions(
+      screen.getByLabelText('Filter categories'),
+      'food',
+    );
+    expect(screen.getByText('First place')).toBeTruthy();
+    expect(screen.getByLabelText('Visible map points').textContent).toBe(
+      'first',
+    );
   });
 });
