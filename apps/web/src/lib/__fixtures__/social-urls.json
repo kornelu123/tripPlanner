@@ -1,0 +1,14 @@
+{
+  "valid": [
+    "https://www.instagram.com/p/AbC_123-/",
+    "https://www.instagram.com/reel/AbC123/",
+    "https://www.tiktok.com/@traveler/video/7412345678901234567"
+  ],
+  "invalid": [
+    "http://www.instagram.com/p/abc/",
+    "https://instagram.com/p/abc/",
+    "https://www.instagram.com/stories/user/123/",
+    "https://www.tiktok.com/@user/video/123?redirect=https://127.0.0.1",
+    "https://www.tiktok.com.evil.test/@user/video/123"
+  ]
+}
