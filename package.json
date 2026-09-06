@@ -1,0 +1,24 @@
+{
+  "name": "trip-planner",
+  "private": true,
+  "packageManager": "pnpm@10.28.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm --filter './packages/**' --if-present build && pnpm --filter @trip-planner/web build",
+    "dev": "pnpm --filter @trip-planner/web dev",
+    "lint": "pnpm --recursive --if-present lint",
+    "typecheck": "pnpm --recursive --if-present typecheck",
+    "test": "pnpm --recursive --if-present test",
+    "test:e2e": "pnpm --filter @trip-planner/web test:e2e",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm --filter @trip-planner/database db:generate",
+    "db:migrate": "pnpm --filter @trip-planner/database db:migrate"
+  },
+  "devDependencies": {
+    "prettier": "3.8.1",
+    "typescript": "5.9.3"
+  }
+}

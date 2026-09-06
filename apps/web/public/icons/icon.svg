@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Roamly</title>
+  <rect width="512" height="512" rx="112" fill="#f7f3eb" />
+  <circle cx="256" cy="256" r="174" fill="#183d34" />
+  <path
+    fill="#f2c878"
+    d="M170 143h101c65 0 105 35 105 91 0 39-20 68-55 82l69 91h-70l-59-79h-30v79h-61V143Zm61 53v81h36c30 0 47-14 47-41 0-26-17-40-47-40h-36Z"
+  />
+</svg>
