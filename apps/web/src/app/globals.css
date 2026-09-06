@@ -797,6 +797,39 @@ select {
 .point-card select {
   padding: 7px;
 }
+.estimated-price {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px 26px;
+  padding: 10px;
+  border-radius: 9px;
+  background: #f6f2e8;
+}
+.estimated-price div,
+.estimated-price h3,
+.estimated-price span,
+.estimated-price small {
+  display: block;
+}
+.estimated-price h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+.estimated-price span,
+.estimated-price small {
+  margin-top: 3px;
+  color: #5b6965;
+  font-size: 11px;
+}
+.estimated-price .price-stale {
+  color: #8b4c20;
+  font-weight: 700;
+}
+.price-sources a {
+  text-decoration: underline;
+}
 .card-actions {
   margin-left: 26px;
 }
@@ -911,6 +944,10 @@ select {
   padding: 20px;
   background: rgba(247, 243, 235, 0.94);
   text-align: center;
+  pointer-events: none;
+}
+.map-state button {
+  pointer-events: auto;
 }
 
 @media (min-width: 801px) and (max-width: 1100px) {

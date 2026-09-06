@@ -32,4 +32,5 @@ export async function getRedisClient(): Promise<
 export * from './repository';
 export * from './category-repository';
 export * from './auth-repository';
+export * from './price-repository';
 export * from './schema';

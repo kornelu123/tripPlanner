@@ -292,6 +292,43 @@ export function TripEditor({ tripId }: { tripId: string }) {
     return true;
   }
 
+  async function refreshPrice(pointId: string) {
+    setData(
+      (current) =>
+        current && {
+          ...current,
+          points: current.points.map((point) =>
+            point.id === pointId
+              ? { ...point, price: { status: 'loading' } }
+              : point,
+          ),
+        },
+    );
+    const response = await fetch(
+      `/api/trips/${tripId}/points/${pointId}/price`,
+      { method: 'POST' },
+    ).catch(() => null);
+    if (!response?.ok) {
+      const message = response
+        ? ((await response.json()) as { message?: string }).message
+        : undefined;
+      setStatus(message ?? 'Could not refresh the price estimate.');
+      setData(
+        (current) =>
+          current && {
+            ...current,
+            points: current.points.map((point) =>
+              point.id === pointId
+                ? { ...point, price: { status: 'unavailable' } }
+                : point,
+            ),
+          },
+      );
+      return;
+    }
+    setStatus('Price research queued. It runs in the background.');
+  }
+
   async function moveCoordinates(latitude: number, longitude: number) {
     if (!movingPoint) return;
     setStatus('Looking up new address…');
@@ -922,6 +959,70 @@ export function TripEditor({ tripId }: { tripId: string }) {
                       <span>{point.address}</span>
                     </span>
                   </button>
+                  <section
+                    className="estimated-price"
+                    aria-label={`Estimated price for ${point.name}`}
+                  >
+                    <div>
+                      <h3>Estimated price</h3>
+                      {point.price?.status === 'loading' ? (
+                        <p role="status">Researching current prices…</p>
+                      ) : point.price?.status === 'success' ? (
+                        <>
+                          <strong>
+                            {point.price.minimumAmount === 0 &&
+                            point.price.maximumAmount === 0
+                              ? 'Free'
+                              : `${point.price.minimumAmount ?? '—'}–${point.price.maximumAmount ?? '—'} ${point.price.currency}`}
+                          </strong>
+                          <span>
+                            {point.price.unit?.replaceAll('_', ' ')} ·{' '}
+                            {Math.round((point.price.confidence ?? 0) * 100)}%
+                            confidence
+                          </span>
+                          {point.price.stale && (
+                            <span className="price-stale">Stale estimate</span>
+                          )}
+                          <span>
+                            Last checked{' '}
+                            {point.price.lastCheckedAt
+                              ? new Date(
+                                  point.price.lastCheckedAt,
+                                ).toLocaleDateString()
+                              : 'unknown'}
+                          </span>
+                          <span className="price-sources">
+                            Sources:{' '}
+                            {point.price.sources?.map((source, sourceIndex) => (
+                              <span key={source.url}>
+                                {sourceIndex > 0 && ', '}
+                                <a
+                                  href={source.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  {source.type.replaceAll('_', ' ')}
+                                </a>
+                              </span>
+                            ))}
+                          </span>
+                        </>
+                      ) : (
+                        <strong>Price unavailable</strong>
+                      )}
+                      <small>
+                        Sourced estimate, not a confirmed price. Actual prices
+                        may differ.
+                      </small>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={point.price?.status === 'loading'}
+                      onClick={() => void refreshPrice(point.id)}
+                    >
+                      Refresh price
+                    </button>
+                  </section>
                   <label>
                     Category
                     <select

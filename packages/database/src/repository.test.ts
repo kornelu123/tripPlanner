@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createTripRepository } from './repository';
 import { createCategoryRepository } from './category-repository';
+import { createPriceRepository } from './price-repository';
 import * as schema from './schema';
 
 const databaseUrl = process.env.DATABASE_TEST_URL;
@@ -24,6 +25,7 @@ integration('trip repository', () => {
       '0001_create_trip_planning_schema.sql',
       '0002_add_category_order.sql',
       '0003_persist_route_plans.sql',
+      '0006_add_place_price_estimates.sql',
     ]) {
       const migration = await readFile(
         new URL(`../migrations/${name}`, import.meta.url),
@@ -233,5 +235,46 @@ integration('trip repository', () => {
       .from(schema.tripPoints)
       .where(eq(schema.tripPoints.id, point!.id));
     expect(reassigned!.categoryId).toBe(defaults[0]!.id);
+  });
+
+  it('saves price provenance, timestamps, units, and cascades with its place', async () => {
+    const [place] = await database
+      .insert(schema.places)
+      .values({
+        normalizedAddress: 'price fixture',
+        displayName: 'Price fixture',
+        coordinates: { latitude: 1, longitude: 2 },
+      })
+      .returning();
+    const repository = createPriceRepository(database);
+    const checkedAt = new Date('2026-09-06T10:00:00Z');
+    await repository.save({
+      placeId: place!.id,
+      priceLevel: 'moderate',
+      minimumAmount: 12,
+      maximumAmount: 25,
+      currency: 'EUR',
+      unit: 'typical_meal',
+      sources: [
+        {
+          url: 'https://official.example/menu',
+          type: 'official_structured_data',
+          retrievedAt: checkedAt.toISOString(),
+        },
+      ],
+      admissionPrices: [],
+      confidence: 0.82,
+      lastCheckedAt: checkedAt,
+    });
+    expect(await repository.get(place!.id)).toMatchObject({
+      currency: 'EUR',
+      unit: 'typical_meal',
+      sources: [
+        expect.objectContaining({ url: 'https://official.example/menu' }),
+      ],
+      lastCheckedAt: checkedAt,
+    });
+    await database.delete(schema.places).where(eq(schema.places.id, place!.id));
+    expect(await repository.get(place!.id)).toBeUndefined();
   });
 });

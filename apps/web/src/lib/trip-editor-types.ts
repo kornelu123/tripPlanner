@@ -5,6 +5,20 @@ export interface TripPoint {
   latitude: number;
   longitude: number;
   categoryId: string;
+  price?: PlacePrice;
+}
+
+export interface PlacePrice {
+  status: 'loading' | 'unavailable' | 'success';
+  priceLevel?: 'budget' | 'moderate' | 'expensive' | 'premium';
+  minimumAmount?: number;
+  maximumAmount?: number;
+  currency?: string;
+  unit?: 'per_person' | 'admission' | 'typical_meal' | 'per_night' | 'other';
+  sources?: Array<{ url: string; type: string }>;
+  confidence?: number;
+  lastCheckedAt?: string;
+  stale?: boolean;
 }
 
 export interface Category {
