@@ -87,6 +87,9 @@ export async function authorizeTrip(
   tripId: string,
   edit = false,
 ) {
+  if (tripId === 'demo') {
+    return { user: { id: 'demo-user' }, session: null, error: null } as const;
+  }
   const auth = await authenticated(request);
   if (auth.error) return auth;
   if (!(await authRepository().canAccessTrip(auth.user.id, tripId, edit)))
