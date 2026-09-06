@@ -1,0 +1,8 @@
+[sandbox.network]
+egress_policy = "restricted"
+
+[[sandbox.network.allow]]
+host = "registry.npmjs.org"
+protocol = "tcp"
+ports = [443]
+description = "Allow Codex to pull npm packages from the public registry"
