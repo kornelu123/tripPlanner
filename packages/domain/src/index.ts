@@ -1,11 +1,19 @@
 export type {
   Coordinates,
+  DurationMatrix,
   GeocodingProvider,
   Place,
   Route,
+  RouteOptimizationRequest,
+  RouteOptimizer,
   RouteRequest,
   RoutingProvider,
+  OptimizedRoute,
+  ProviderMetadata,
   SocialPlatformProvider,
   SocialPost,
   SocialSearchRequest,
+  TravelMode,
 } from './providers';
+export { UnreachableRouteError } from './providers';
+export { routeOptimizer } from './route-optimizer';

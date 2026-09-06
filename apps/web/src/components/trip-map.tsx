@@ -9,16 +9,17 @@ import {
   type MapLayerMouseEvent,
   type MapMouseEvent,
 } from 'maplibre-gl';
-import type { FeatureCollection, Point } from 'geojson';
+import type { FeatureCollection, LineString, Point } from 'geojson';
 import { useEffect, useRef } from 'react';
 
-import type { Category, TripPoint } from '@/lib/trip-editor-types';
+import type { Category, RoutePlan, TripPoint } from '@/lib/trip-editor-types';
 
 interface TripMapProps {
   points: TripPoint[];
   categories: Category[];
   selectedId: string | null;
   movingPoint: TripPoint | null;
+  routePlan?: RoutePlan;
   onSelect: (id: string) => void;
   onAddCoordinates: (latitude: number, longitude: number) => void;
   onMoveCoordinates: (latitude: number, longitude: number) => void;
@@ -27,6 +28,7 @@ interface TripMapProps {
 function pointCollection(
   points: TripPoint[],
   categories: Category[],
+  routePlan?: RoutePlan,
 ): FeatureCollection {
   return {
     type: 'FeatureCollection',
@@ -34,6 +36,7 @@ function pointCollection(
       type: 'Feature',
       properties: {
         id: point.id,
+        number: routePlan ? routePlan.pointIds.indexOf(point.id) + 1 : '',
         color:
           categories.find(({ id }) => id === point.categoryId)?.color ??
           '#687c76',
@@ -46,11 +49,31 @@ function pointCollection(
   };
 }
 
+function routeCollection(routePlan?: RoutePlan): FeatureCollection<LineString> {
+  return {
+    type: 'FeatureCollection',
+    features: routePlan
+      ? routePlan.legs.map((leg) => ({
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: leg.geometry.map(({ longitude, latitude }) => [
+              longitude,
+              latitude,
+            ]),
+          },
+        }))
+      : [],
+  };
+}
+
 export default function TripMap({
   points,
   categories,
   selectedId,
   movingPoint,
+  routePlan,
   onSelect,
   onAddCoordinates,
   onMoveCoordinates,
@@ -62,6 +85,7 @@ export default function TripMap({
   const pointsRef = useRef(points);
   const categoriesRef = useRef(categories);
   const selectedIdRef = useRef(selectedId);
+  const routePlanRef = useRef(routePlan);
   const callbacksRef = useRef({
     onSelect,
     onAddCoordinates,
@@ -74,6 +98,7 @@ export default function TripMap({
     pointsRef.current = points;
     categoriesRef.current = categories;
     selectedIdRef.current = selectedId;
+    routePlanRef.current = routePlan;
   }, [
     movingPoint,
     onAddCoordinates,
@@ -82,6 +107,7 @@ export default function TripMap({
     points,
     categories,
     selectedId,
+    routePlan,
   ]);
 
   useEffect(() => {
@@ -107,10 +133,28 @@ export default function TripMap({
     map.on('load', () => {
       map.addSource('trip-points', {
         type: 'geojson',
-        data: pointCollection(pointsRef.current, categoriesRef.current),
+        data: pointCollection(
+          pointsRef.current,
+          categoriesRef.current,
+          routePlanRef.current,
+        ),
         cluster: true,
         clusterMaxZoom: 14,
         clusterRadius: 48,
+      });
+      map.addSource('trip-route', {
+        type: 'geojson',
+        data: routeCollection(routePlanRef.current),
+      });
+      map.addLayer({
+        id: 'trip-route-line',
+        type: 'line',
+        source: 'trip-route',
+        paint: {
+          'line-color': '#e96f43',
+          'line-width': 5,
+          'line-opacity': 0.9,
+        },
       });
       map.addLayer({
         id: 'clusters',
@@ -123,6 +167,21 @@ export default function TripMap({
           'circle-stroke-color': '#fff',
           'circle-stroke-width': 3,
         },
+      });
+      map.addLayer({
+        id: 'point-numbers',
+        type: 'symbol',
+        source: 'trip-points',
+        filter: [
+          'all',
+          ['!', ['has', 'point_count']],
+          ['!=', ['get', 'number'], ''],
+        ],
+        layout: {
+          'text-field': ['to-string', ['get', 'number']],
+          'text-size': 11,
+        },
+        paint: { 'text-color': '#fff' },
       });
       map.addLayer({
         id: 'cluster-count',
@@ -195,7 +254,10 @@ export default function TripMap({
     if (!map) return;
     const update = () => {
       (map.getSource('trip-points') as GeoJSONSource | undefined)?.setData(
-        pointCollection(points, categories),
+        pointCollection(points, categories, routePlan),
+      );
+      (map.getSource('trip-route') as GeoJSONSource | undefined)?.setData(
+        routeCollection(routePlan),
       );
       if (map.getLayer('points')) {
         map.setPaintProperty('points', 'circle-radius', [
@@ -215,7 +277,7 @@ export default function TripMap({
     };
     if (map.loaded()) update();
     else map.once('load', update);
-  }, [categories, points, selectedId]);
+  }, [categories, points, routePlan, selectedId]);
 
   useEffect(() => {
     moveMarkerRef.current?.remove();

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 
-import { ServiceWorkerRegistration } from '@/components/service-worker-registration';
+import { ServiceWorkerRegistration } from '../components/service-worker-registration';
 
 import './globals.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -29,7 +29,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
         {children}
         <ServiceWorkerRegistration />

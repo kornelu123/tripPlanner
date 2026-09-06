@@ -3,6 +3,7 @@ import type {
   PointDraft,
   TripEditorData,
   TripPoint,
+  RoutePlan,
 } from './trip-editor-types';
 
 export const allowedCategoryIcons = [
@@ -76,6 +77,24 @@ function createTrip(tripId: string): TripEditorData {
       },
     ],
   };
+}
+
+export function saveRoutePlan(tripId: string, routePlan: RoutePlan): RoutePlan {
+  const data = getTripEditorData(tripId);
+  data.previousRoutePlan = data.routePlan;
+  data.routePlan = routePlan;
+  return routePlan;
+}
+
+export function restorePreviousRoutePlan(
+  tripId: string,
+): RoutePlan | undefined {
+  const data = getTripEditorData(tripId);
+  if (!data.previousRoutePlan) return undefined;
+  const current = data.routePlan;
+  data.routePlan = data.previousRoutePlan;
+  data.previousRoutePlan = current;
+  return data.routePlan;
 }
 
 export function getTripEditorData(tripId: string): TripEditorData {

@@ -5,10 +5,18 @@ import type { RoutingProvider } from './providers';
 describe('RoutingProvider contract', () => {
   it('allows routing implementations without exposing provider types', async () => {
     const provider: RoutingProvider = {
+      durationMatrix: async () => ({
+        durations: [
+          [0, 600],
+          [600, 0],
+        ],
+        metadata: { provider: 'fixture', profile: 'walking' },
+      }),
       calculateRoute: async ({ origin, destination }) => ({
         distanceMeters: 1_000,
         durationSeconds: 600,
         path: [origin, destination],
+        metadata: { provider: 'fixture', profile: 'walking' },
       }),
     };
 

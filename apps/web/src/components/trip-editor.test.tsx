@@ -233,4 +233,20 @@ describe('TripEditor', () => {
       'first',
     );
   });
+
+  it('prevents selecting the same fixed start and end', async () => {
+    const user = userEvent.setup();
+    render(<TripEditor tripId="test" />);
+    await screen.findByText('First place', {
+      selector: '.point-select strong',
+    });
+
+    await user.selectOptions(screen.getByLabelText('Fixed start'), 'first');
+
+    expect(
+      screen
+        .getByLabelText('Fixed end')
+        .querySelector<HTMLOptionElement>('option[value="first"]')?.disabled,
+    ).toBe(true);
+  });
 });

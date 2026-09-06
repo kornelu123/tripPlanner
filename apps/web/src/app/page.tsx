@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 const itinerary = [
   {
     time: '9:00',
@@ -32,9 +34,9 @@ export default function Home() {
         <div className="nav-links">
           <a href="#how-it-works">How it works</a>
           <a href="#inspiration">Inspiration</a>
-          <button className="nav-button" type="button">
+          <Link className="nav-button" href="/trips/demo">
             Plan a trip
-          </button>
+          </Link>
         </div>
       </nav>
 
@@ -48,9 +50,9 @@ export default function Home() {
             Tell us what you love. We’ll shape a route with local stops,
             breathing room, and none of the spreadsheet stress.
           </p>
-          <button className="primary-button" type="button">
+          <Link className="primary-button" href="/trips/demo">
             Start planning <span aria-hidden="true">→</span>
-          </button>
+          </Link>
           <p className="reassurance">Free to plan · No account needed</p>
         </div>
 
