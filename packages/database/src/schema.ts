@@ -32,6 +32,11 @@ const geographyPoint = customType<{
   },
 });
 
+const bytea = customType<{ data: Uint8Array; driverData: Buffer }>({
+  dataType: () => 'bytea',
+  toDriver: (value) => Buffer.from(value),
+});
+
 const timestamps = {
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()
@@ -50,6 +55,72 @@ export const users = pgTable(
     ...timestamps,
   },
   (table) => [uniqueIndex('users_email_idx').on(table.email)],
+);
+
+export const passkeyCredentials = pgTable(
+  'passkey_credentials',
+  {
+    id: text('id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    publicKey: bytea('public_key').notNull(),
+    counter: integer('counter').default(0).notNull(),
+    transports: jsonb('transports').$type<string[]>().default([]).notNull(),
+    deviceType: varchar('device_type', { length: 32 }).notNull(),
+    backedUp: boolean('backed_up').default(false).notNull(),
+    name: varchar('name', { length: 100 }).notNull(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    createdAt: timestamps.createdAt,
+  },
+  (table) => [index('passkeys_user_id_idx').on(table.userId)],
+);
+
+export const authChallenges = pgTable('auth_challenges', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  kind: varchar('kind', { length: 32 }).notNull(),
+  challengeHash: varchar('challenge_hash', { length: 64 }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  email: varchar('email', { length: 320 }),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamps.createdAt,
+});
+
+export const sessions = pgTable(
+  'sessions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: varchar('token_hash', { length: 64 }).notNull(),
+    userAgent: varchar('user_agent', { length: 500 }),
+    ipAddress: varchar('ip_address', { length: 64 }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamps.createdAt,
+  },
+  (table) => [
+    uniqueIndex('sessions_token_hash_idx').on(table.tokenHash),
+    index('sessions_user_id_idx').on(table.userId),
+  ],
+);
+
+export const appleAccounts = pgTable(
+  'apple_accounts',
+  {
+    subject: varchar('subject', { length: 255 }).primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    email: varchar('email', { length: 320 }),
+    isPrivateRelay: boolean('is_private_relay').default(false).notNull(),
+    createdAt: timestamps.createdAt,
+  },
+  (table) => [uniqueIndex('apple_accounts_user_id_idx').on(table.userId)],
 );
 
 export const trips = pgTable(

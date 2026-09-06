@@ -6,13 +6,16 @@ import {
   saveSocialImport,
 } from '../../../../../../lib/social-import-store';
 import { transitionSocialImport } from '@trip-planner/domain';
+import { authorizeTrip } from '../../../../../../lib/auth';
 
 interface Context {
   params: Promise<{ tripId: string; importId: string }>;
 }
 
-export async function GET(_request: Request, { params }: Context) {
+export async function GET(request: Request, { params }: Context) {
   const { tripId, importId } = await params;
+  const auth = await authorizeTrip(request, tripId);
+  if (auth.error) return auth.error;
   const item = getSocialImport(tripId, importId);
   return item
     ? NextResponse.json(item)
@@ -21,6 +24,8 @@ export async function GET(_request: Request, { params }: Context) {
 
 export async function POST(request: Request, { params }: Context) {
   const { tripId, importId } = await params;
+  const auth = await authorizeTrip(request, tripId, true);
+  if (auth.error) return auth.error;
   const item = getSocialImport(tripId, importId);
   if (!item)
     return NextResponse.json({ message: 'Import not found.' }, { status: 404 });

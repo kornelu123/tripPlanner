@@ -7,17 +7,23 @@ import {
   UnsafeUrlError,
   validateSocialUrl,
 } from '../../../../../lib/social-url-security';
+import { authorizeTrip } from '../../../../../lib/auth';
 
 interface Context {
   params: Promise<{ tripId: string }>;
 }
 
-export async function GET(_request: Request, { params }: Context) {
-  return NextResponse.json(listSocialImports((await params).tripId));
+export async function GET(request: Request, { params }: Context) {
+  const { tripId } = await params;
+  const auth = await authorizeTrip(request, tripId);
+  if (auth.error) return auth.error;
+  return NextResponse.json(listSocialImports(tripId));
 }
 
 export async function POST(request: Request, { params }: Context) {
   const { tripId } = await params;
+  const auth = await authorizeTrip(request, tripId, true);
+  if (auth.error) return auth.error;
   let sourceUrl: unknown;
   try {
     sourceUrl = ((await request.json()) as { url?: unknown }).url;

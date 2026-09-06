@@ -14,19 +14,24 @@ import type {
   RoutePlan,
   RoutePlanRequest,
 } from '../../../../../lib/trip-editor-types';
+import { authorizeTrip } from '../../../../../lib/auth';
 
 interface Context {
   params: Promise<{ tripId: string }>;
 }
 
-export async function GET(_request: Request, { params }: Context) {
+export async function GET(request: Request, { params }: Context) {
   const { tripId } = await params;
+  const auth = await authorizeTrip(request, tripId);
+  if (auth.error) return auth.error;
   const { routePlan, previousRoutePlan } = getTripEditorData(tripId);
   return NextResponse.json({ routePlan, previousRoutePlan });
 }
 
-export async function PATCH(_request: Request, { params }: Context) {
+export async function PATCH(request: Request, { params }: Context) {
   const { tripId } = await params;
+  const auth = await authorizeTrip(request, tripId, true);
+  if (auth.error) return auth.error;
   const restored = restorePreviousRoutePlan(tripId);
   return restored
     ? NextResponse.json(restored)
@@ -38,6 +43,8 @@ export async function PATCH(_request: Request, { params }: Context) {
 
 export async function POST(request: Request, { params }: Context) {
   const { tripId } = await params;
+  const auth = await authorizeTrip(request, tripId, true);
+  if (auth.error) return auth.error;
   const input = (await request.json()) as RoutePlanRequest;
   const data = getTripEditorData(tripId);
   if (

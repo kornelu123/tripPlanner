@@ -897,3 +897,20 @@ select {
     text-align: center;
   }
 }
+
+.auth-shell { min-height: 100vh; display: grid; place-items: center; padding: 32px 20px; background: radial-gradient(circle at top, #f3ca7d 0 18%, transparent 42%), var(--cream); }
+.auth-card, .settings { width: min(100%, 620px); padding: 36px; border: 1px solid var(--line); border-radius: 24px; background: rgba(255,255,255,.92); box-shadow: 0 24px 70px rgba(24,61,52,.12); }
+.auth-card h1, .settings h1 { font-size: clamp(36px, 7vw, 54px); }
+.auth-card label { display: grid; gap: 7px; margin: 18px 0; font-size: 13px; font-weight: 600; }
+.auth-card input { padding: 13px 15px; border: 1px solid var(--line); border-radius: 10px; font: inherit; }
+.auth-actions { display: grid; gap: 10px; margin-top: 22px; }
+.auth-actions button, .settings button, .apple-button { border: 0; border-radius: 999px; padding: 13px 18px; color: white; background: var(--ink); text-align: center; }
+.secondary, .link-button { color: var(--ink) !important; background: transparent !important; border: 1px solid var(--line) !important; }
+.apple-button { background: #000; }
+.apple-button.compact { display: inline-block; margin-top: 10px; }
+.settings { width: min(100%, 760px); }
+.settings header, .settings article { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.settings section { margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--line); }
+.settings h2 { margin-bottom: 6px; }
+.settings article { margin-top: 12px; padding: 14px 0; }
+.settings article span { display: block; max-width: 450px; margin-top: 4px; color: #677a74; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

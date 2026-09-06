@@ -1,4 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { NextResponse } from 'next/server';
+
+vi.mock('../../../lib/auth', () => ({
+  authorizeTrip: (request: Request) => {
+    const authorization = request.headers.get('authorization');
+    if (!authorization)
+      return { error: NextResponse.json({}, { status: 401 }) };
+    return authorization === 'Bearer demo-user'
+      ? { error: null }
+      : { error: NextResponse.json({}, { status: 404 }) };
+  },
+}));
 
 import { DELETE, PATCH } from './[categoryId]/route';
 import { GET, POST } from './route';
