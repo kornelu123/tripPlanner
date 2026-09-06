@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import { ServiceWorkerRegistration } from '@/components/service-worker-registration';
 
 import './globals.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
 
 export const metadata: Metadata = {
   title: 'Roamly — Plan a day worth remembering',
