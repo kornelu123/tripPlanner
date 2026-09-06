@@ -117,6 +117,7 @@ export const categories = pgTable(
     name: varchar('name', { length: 100 }).notNull(),
     color: varchar('color', { length: 32 }).notNull(),
     icon: varchar('icon', { length: 100 }).notNull(),
+    position: integer('position').notNull(),
     ...timestamps,
   },
   (table) => [
@@ -126,6 +127,7 @@ export const categories = pgTable(
       'categories_one_owner_check',
       sql`(${table.userId} IS NOT NULL) <> (${table.tripId} IS NOT NULL)`,
     ),
+    check('categories_position_check', sql`${table.position} >= 0`),
   ],
 );
 

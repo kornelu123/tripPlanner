@@ -1,11 +1,13 @@
 import { readFile } from 'node:fs/promises';
 
 import { drizzle } from 'drizzle-orm/node-postgres';
+import { eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createTripRepository } from './repository';
+import { createCategoryRepository } from './category-repository';
 import * as schema from './schema';
 
 const databaseUrl = process.env.DATABASE_TEST_URL;
@@ -20,6 +22,7 @@ integration('trip repository', () => {
     for (const name of [
       '0000_enable_postgis_and_create_trips.sql',
       '0001_create_trip_planning_schema.sql',
+      '0002_add_category_order.sql',
     ]) {
       const migration = await readFile(
         new URL(`../migrations/${name}`, import.meta.url),
@@ -134,7 +137,13 @@ integration('trip repository', () => {
       .returning();
     const [category] = await database
       .insert(schema.categories)
-      .values({ tripId: trip!.id, name: 'Food', color: '#fff', icon: 'food' })
+      .values({
+        tripId: trip!.id,
+        name: 'Food',
+        color: '#ffffff',
+        icon: 'food',
+        position: 0,
+      })
       .returning();
     const [point] = await database
       .insert(schema.tripPoints)
@@ -164,5 +173,64 @@ integration('trip repository', () => {
     );
     expect(pointCount.rows[0].count).toBe(0);
     expect(placeCount.rows[0].count).toBe(1);
+  });
+
+  it('seeds ordinary default rows once and enforces category mutation ownership', async () => {
+    const [owner, stranger] = await database
+      .insert(schema.users)
+      .values([
+        { email: 'category-owner@example.com', displayName: 'Category owner' },
+        { email: 'category-stranger@example.com', displayName: 'Stranger' },
+      ])
+      .returning();
+    const tripsRepository = createTripRepository(database);
+    const firstTrip = await tripsRepository.createTrip(owner!.id, 'First');
+    await tripsRepository.createTrip(owner!.id, 'Second');
+    const repository = createCategoryRepository(database);
+    const defaults = await repository.list(owner!.id, firstTrip!.id);
+    expect(defaults.map(({ name }) => name)).toEqual([
+      'Uncategorized',
+      'Food',
+      'Culture',
+      'Outdoors',
+      'Stay',
+    ]);
+
+    const category = await repository.create(owner!.id, firstTrip!.id, {
+      name: 'Shopping',
+      color: '#aabbcc',
+      icon: 'pin',
+    });
+    expect(category).toBeDefined();
+    expect(
+      await repository.update(stranger!.id, category!.id, { name: 'Stolen' }),
+    ).toBeUndefined();
+    expect(
+      await repository.update(owner!.id, category!.id, { name: 'Shops' }),
+    ).toMatchObject({ name: 'Shops' });
+
+    const [place] = await database
+      .insert(schema.places)
+      .values({
+        normalizedAddress: 'market',
+        displayName: 'Market',
+        coordinates: { latitude: 1, longitude: 2 },
+      })
+      .returning();
+    const [point] = await database
+      .insert(schema.tripPoints)
+      .values({
+        tripId: firstTrip!.id,
+        placeId: place!.id,
+        categoryId: category!.id,
+        position: 0,
+      })
+      .returning();
+    expect(await repository.delete(owner!.id, category!.id)).toBeDefined();
+    const [reassigned] = await database
+      .select()
+      .from(schema.tripPoints)
+      .where(eq(schema.tripPoints.id, point!.id));
+    expect(reassigned!.categoryId).toBe(defaults[0]!.id);
   });
 });

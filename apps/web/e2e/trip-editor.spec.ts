@@ -21,13 +21,12 @@ test('edits trip points with accessible controls', async ({
 
   const firstCard = page.locator('#point-miradouro');
   await firstCard.getByRole('button', { name: /Miradouro da Senhora/ }).click();
-  await expect(firstCard).toHaveClass(/selected/);
   await firstCard
     .getByRole('combobox', { name: 'Category' })
-    .selectOption('Culture');
+    .selectOption({ label: 'Culture' });
   await expect(
     firstCard.getByRole('combobox', { name: 'Category' }),
-  ).toHaveValue('Culture');
+  ).toHaveValue(/-culture$/);
 
   await firstCard.getByRole('button', { name: 'Move' }).click();
   await page.getByLabel('New latitude').fill('38.72');

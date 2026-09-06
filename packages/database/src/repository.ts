@@ -2,6 +2,7 @@ import { and, asc, eq, or, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 import * as schema from './schema';
+import { createCategoryRepository } from './category-repository';
 
 type Database = NodePgDatabase<typeof schema>;
 type MembershipRole = 'editor' | 'viewer';
@@ -31,6 +32,16 @@ function canEditTrip(userId: string) {
 
 export function createTripRepository(database: Database) {
   return {
+    async createTrip(userId: string, name: string) {
+      return database.transaction(async (transaction) => {
+        const [trip] = await transaction
+          .insert(schema.trips)
+          .values({ ownerId: userId, name })
+          .returning();
+        await createCategoryRepository(transaction).seedDefaults(userId);
+        return trip;
+      });
+    },
     async getTrip(userId: string, tripId: string) {
       const [trip] = await database
         .select()

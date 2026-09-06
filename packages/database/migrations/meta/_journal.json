@@ -15,6 +15,13 @@
       "when": 1788710400000,
       "tag": "0001_create_trip_planning_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788739200000,
+      "tag": "0002_add_category_order",
+      "breakpoints": true
     }
   ]
 }

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { LazyTripMap } from './lazy-trip-map';
 import type {
   PendingImport,
+  Category,
   PointDraft,
   TripEditorData,
   TripPoint,
@@ -34,6 +35,12 @@ export function TripEditor({ tripId }: { tripId: string }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<PointDraft[]>([]);
   const [status, setStatus] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [newCategory, setNewCategory] = useState({
+    name: '',
+    color: '#397a65',
+    icon: 'pin',
+  });
 
   useEffect(() => {
     fetch(`/api/trips/${tripId}/points`)
@@ -110,11 +117,90 @@ export function TripEditor({ tripId }: { tripId: string }) {
   }
 
   function addPending(item: PendingImport) {
+    const outdoors = data?.categories.find(({ name }) => name === 'Outdoors');
     void addPoint({
       ...item,
-      category: 'Outdoors',
+      categoryId: outdoors?.id,
       pendingImportId: item.id,
     });
+  }
+
+  async function createCategory(event: React.FormEvent) {
+    event.preventDefault();
+    const response = await fetch(
+      `/api/categories?tripId=${encodeURIComponent(tripId)}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer demo-user',
+        },
+        body: JSON.stringify(newCategory),
+      },
+    );
+    if (!response.ok) return setStatus('Could not create category.');
+    const category = (await response.json()) as Category;
+    setData(
+      (current) =>
+        current && {
+          ...current,
+          categories: [...current.categories, category],
+        },
+    );
+    setNewCategory({ ...newCategory, name: '' });
+    setStatus(`${category.name} created.`);
+  }
+
+  async function updateCategory(category: Category, update: Partial<Category>) {
+    const response = await fetch(
+      `/api/categories/${category.id}?tripId=${encodeURIComponent(tripId)}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer demo-user',
+        },
+        body: JSON.stringify(update),
+      },
+    );
+    if (!response.ok) return;
+    const updated = (await response.json()) as Category;
+    setData(
+      (current) =>
+        current && {
+          ...current,
+          categories: current.categories
+            .map((item) => (item.id === updated.id ? updated : item))
+            .sort((a, b) => a.position - b.position),
+        },
+    );
+  }
+
+  async function removeCategory(category: Category) {
+    const response = await fetch(
+      `/api/categories/${category.id}?tripId=${encodeURIComponent(tripId)}`,
+      {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer demo-user' },
+      },
+    );
+    if (!response.ok) return setStatus('Could not delete category.');
+    const uncategorized = data?.categories.find(
+      ({ name }) => name === 'Uncategorized',
+    );
+    setData(
+      (current) =>
+        current && {
+          ...current,
+          categories: current.categories.filter(({ id }) => id !== category.id),
+          points: current.points.map((point) =>
+            point.categoryId === category.id && uncategorized
+              ? { ...point, categoryId: uncategorized.id }
+              : point,
+          ),
+        },
+    );
+    if (categoryFilter === category.id) setCategoryFilter('all');
   }
 
   async function updatePoint(pointId: string, update: Partial<TripPoint>) {
@@ -181,6 +267,10 @@ export function TripEditor({ tripId }: { tripId: string }) {
   if (!data) {
     return <main className="editor-loading">{status || 'Loading trip…'}</main>;
   }
+  const visiblePoints =
+    categoryFilter === 'all'
+      ? data.points
+      : data.points.filter(({ categoryId }) => categoryId === categoryFilter);
 
   return (
     <main className="trip-editor">
@@ -247,6 +337,140 @@ export function TripEditor({ tripId }: { tripId: string }) {
               Enter coordinates
             </button>
           </div>
+
+          <section
+            className="category-manager"
+            aria-labelledby="categories-heading"
+          >
+            <div className="category-toolbar">
+              <h3 id="categories-heading">Categories</h3>
+              <label>
+                Filter
+                <select
+                  aria-label="Filter categories"
+                  value={categoryFilter}
+                  onChange={(event) => setCategoryFilter(event.target.value)}
+                >
+                  <option value="all">All categories</option>
+                  {data.categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <details>
+              <summary>Manage categories</summary>
+              <ul>
+                {data.categories.map((category, index) => (
+                  <li key={category.id}>
+                    <input
+                      aria-label={`Color for ${category.name}`}
+                      type="color"
+                      value={category.color}
+                      onChange={(event) =>
+                        void updateCategory(category, {
+                          color: event.target.value,
+                        })
+                      }
+                    />
+                    <input
+                      aria-label={`Edit category ${category.name}`}
+                      value={category.name}
+                      disabled={category.name === 'Uncategorized'}
+                      onChange={(event) =>
+                        void updateCategory(category, {
+                          name: event.target.value,
+                        })
+                      }
+                    />
+                    <select
+                      aria-label={`Icon for ${category.name}`}
+                      value={category.icon}
+                      onChange={(event) =>
+                        void updateCategory(category, {
+                          icon: event.target.value,
+                        })
+                      }
+                    >
+                      <option value="pin">Pin</option>
+                      <option value="fork-knife">Food</option>
+                      <option value="landmark">Landmark</option>
+                      <option value="tree">Outdoors</option>
+                      <option value="bed">Stay</option>
+                    </select>
+                    <button
+                      type="button"
+                      aria-label={`Move ${category.name} up`}
+                      disabled={index === 0}
+                      onClick={() =>
+                        void updateCategory(category, { position: index - 1 })
+                      }
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Move ${category.name} down`}
+                      disabled={index === data.categories.length - 1}
+                      onClick={() =>
+                        void updateCategory(category, { position: index + 1 })
+                      }
+                    >
+                      ↓
+                    </button>
+                    {category.name !== 'Uncategorized' && (
+                      <button
+                        type="button"
+                        aria-label={`Delete ${category.name}`}
+                        onClick={() => void removeCategory(category)}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <form className="new-category" onSubmit={createCategory}>
+                <input
+                  aria-label="Category title"
+                  required
+                  maxLength={100}
+                  placeholder="New category"
+                  value={newCategory.name}
+                  onChange={(event) =>
+                    setNewCategory({ ...newCategory, name: event.target.value })
+                  }
+                />
+                <input
+                  aria-label="New category color"
+                  type="color"
+                  value={newCategory.color}
+                  onChange={(event) =>
+                    setNewCategory({
+                      ...newCategory,
+                      color: event.target.value,
+                    })
+                  }
+                />
+                <select
+                  aria-label="New category icon"
+                  value={newCategory.icon}
+                  onChange={(event) =>
+                    setNewCategory({ ...newCategory, icon: event.target.value })
+                  }
+                >
+                  <option value="pin">Pin</option>
+                  <option value="fork-knife">Food</option>
+                  <option value="landmark">Landmark</option>
+                  <option value="tree">Outdoors</option>
+                  <option value="bed">Stay</option>
+                </select>
+                <button type="submit">Add category</button>
+              </form>
+            </details>
+          </section>
 
           {draft && (
             <form
@@ -320,7 +544,7 @@ export function TripEditor({ tripId }: { tripId: string }) {
           )}
 
           <ol className="point-list">
-            {data.points.map((point, index) => (
+            {visiblePoints.map((point, index) => (
               <li key={point.id}>
                 <article
                   id={`point-${point.id}`}
@@ -338,7 +562,12 @@ export function TripEditor({ tripId }: { tripId: string }) {
                     aria-pressed={selectedId === point.id}
                   >
                     <span
-                      className={`category-dot category-${point.category.toLowerCase()}`}
+                      className="category-dot"
+                      style={{
+                        background: data.categories.find(
+                          ({ id }) => id === point.categoryId,
+                        )?.color,
+                      }}
                       aria-hidden="true"
                     />
                     <span>
@@ -350,15 +579,17 @@ export function TripEditor({ tripId }: { tripId: string }) {
                   <label>
                     Category
                     <select
-                      value={point.category}
+                      value={point.categoryId}
                       onChange={(event) =>
                         void updatePoint(point.id, {
-                          category: event.target.value,
+                          categoryId: event.target.value,
                         })
                       }
                     >
                       {data.categories.map((category) => (
-                        <option key={category}>{category}</option>
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
                       ))}
                     </select>
                   </label>
@@ -407,7 +638,8 @@ export function TripEditor({ tripId }: { tripId: string }) {
 
         <section className="map-panel" aria-label="Map and map controls">
           <LazyTripMap
-            points={data.points}
+            points={visiblePoints}
+            categories={data.categories}
             selectedId={selectedId}
             movingPoint={movingPoint}
             onSelect={selectPoint}

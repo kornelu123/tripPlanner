@@ -4,7 +4,15 @@ export interface TripPoint {
   address: string;
   latitude: number;
   longitude: number;
-  category: string;
+  categoryId: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+  position: number;
 }
 
 export interface PendingImport {
@@ -20,7 +28,7 @@ export interface TripEditorData {
   trip: { id: string; name: string };
   points: TripPoint[];
   pendingImports: PendingImport[];
-  categories: string[];
+  categories: Category[];
 }
 
 export interface PointDraft {
@@ -28,6 +36,6 @@ export interface PointDraft {
   address: string;
   latitude: number;
   longitude: number;
-  category?: string;
+  categoryId?: string;
   pendingImportId?: string;
 }
