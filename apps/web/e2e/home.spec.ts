@@ -1,5 +1,15 @@
 import { expect, test } from '@playwright/test';
 
+test('keeps account actions visible on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/');
+
+  await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Register' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'How it works' })).toBeHidden();
+  await expect(page.getByRole('link', { name: 'Inspiration' })).toBeHidden();
+});
+
 test('renders the responsive trip planning shell', async ({ page }) => {
   await page.route('**/api/trips/demo/points', (route) =>
     route.fulfill({

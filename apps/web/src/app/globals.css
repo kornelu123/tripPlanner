@@ -336,6 +336,14 @@ h1 em {
   .nav-links a {
     display: none;
   }
+  .nav-links {
+    gap: 16px;
+  }
+  .nav-links .auth-link {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
   .hero {
     width: calc(100% - 32px);
     grid-template-columns: 1fr;

@@ -34,8 +34,12 @@ export default function Home() {
         <div className="nav-links">
           <a href="#how-it-works">How it works</a>
           <a href="#inspiration">Inspiration</a>
-          <Link href="/login">Log in</Link>
-          <Link href="/register">Register</Link>
+          <Link className="auth-link" href="/login">
+            Log in
+          </Link>
+          <Link className="auth-link" href="/register">
+            Register
+          </Link>
           <Link className="nav-button" href="/trips/demo">
             Plan a trip
           </Link>
