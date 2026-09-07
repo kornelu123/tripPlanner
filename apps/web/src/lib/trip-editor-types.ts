@@ -5,7 +5,31 @@ export interface TripPoint {
   latitude: number;
   longitude: number;
   categoryId: string;
+  googlePlaceId?: string;
+  google?: GooglePlaceData;
+  notes?: string;
+  customCategory?: string;
+  plannedDurationMinutes?: number;
+  visitStatus?: 'planned' | 'completed';
+  itineraryOrder?: number;
+  socialSourceUrl?: string;
   price?: PlacePrice;
+}
+
+export interface GooglePlaceData {
+  googlePlaceId?: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  category?: string;
+  openNow?: boolean;
+  weekdayDescriptions?: string[];
+  website?: string;
+  phoneNumber?: string;
+  rating?: number;
+  reviewCount?: number;
+  priceLevel?: string;
 }
 
 export interface PlacePrice {
@@ -87,4 +111,6 @@ export interface PointDraft {
   longitude: number;
   categoryId?: string;
   pendingImportId?: string;
+  googlePlaceId?: string;
+  google?: GooglePlaceData;
 }
