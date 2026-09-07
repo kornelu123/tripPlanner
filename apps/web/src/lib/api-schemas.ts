@@ -8,6 +8,24 @@ export const pointDraftSchema = z.strictObject({
   longitude: z.number().finite().min(-180).max(180),
   categoryId: id.optional(),
   pendingImportId: id.optional(),
+  googlePlaceId: id.optional(),
+  google: z
+    .strictObject({
+      googlePlaceId: id.optional(),
+      name: z.string().max(300),
+      address: z.string().max(1000),
+      latitude: z.number().finite(),
+      longitude: z.number().finite(),
+      category: z.string().optional(),
+      openNow: z.boolean().optional(),
+      weekdayDescriptions: z.array(z.string()).optional(),
+      website: z.string().url().optional(),
+      phoneNumber: z.string().optional(),
+      rating: z.number().optional(),
+      reviewCount: z.number().int().optional(),
+      priceLevel: z.string().optional(),
+    })
+    .optional(),
 });
 export const pointUpdateSchema = pointDraftSchema
   .partial()

@@ -36,6 +36,29 @@ vi.mock('./lazy-trip-map', () => ({
   ),
 }));
 
+vi.mock('./place-search', () => ({
+  PlaceSearch: ({ onChoose }: { onChoose: (place: unknown) => void }) => (
+    <>
+      <input aria-label="Search for an address" />
+      <button type="button">Search</button>
+      <button
+        type="button"
+        onClick={() =>
+          onChoose({
+            name: 'Museum',
+            address: 'Museum address',
+            latitude: 37,
+            longitude: -8,
+            googlePlaceId: 'museum-place-id',
+          })
+        }
+      >
+        Museum
+      </button>
+    </>
+  ),
+}));
+
 const initialData: TripEditorData = {
   trip: { id: 'test', name: 'Test trip' },
   categories: [
@@ -111,6 +134,7 @@ describe('TripEditor', () => {
   let points: TripPoint[];
 
   beforeEach(() => {
+    window.history.replaceState(null, '', '/');
     points = structuredClone(initialData.points);
     let createdId = 0;
     vi.stubGlobal(
