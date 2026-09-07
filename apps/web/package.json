@@ -20,8 +20,8 @@
     "@trip-planner/database": "workspace:*",
     "@trip-planner/domain": "workspace:*",
     "jose": "^6.2.12",
-    "next": "16.1.6",
-    "nodemailer": "^7.0.13",
+    "next": "16.3.4",
+    "nodemailer": "^9.0.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "zod": "4.3.6"
@@ -36,7 +36,7 @@
     "@types/react": "19.2.13",
     "@types/react-dom": "19.2.3",
     "eslint": "9.39.3",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "16.3.4",
     "jsdom": "^30.0.1",
     "typescript": "5.9.3",
     "vitest": "4.0.18"
