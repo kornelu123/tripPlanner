@@ -21,10 +21,14 @@ export function createAuthRepository(database: Database) {
         })) ?? null
       );
     },
-    async createUser(email: string, displayName: string) {
+    async createUser(
+      email: string,
+      displayName: string,
+      passwordHash?: string,
+    ) {
       const [user] = await database
         .insert(schema.users)
-        .values({ email, displayName })
+        .values({ email, displayName, passwordHash })
         .returning();
       return user!;
     },

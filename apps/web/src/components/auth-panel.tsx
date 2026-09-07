@@ -35,7 +35,24 @@ export function SignInPanel({
 }) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  async function submitCredentials(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    try {
+      setMessage('');
+      await jsonFetch(`/api/auth/${mode}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email, password, displayName: name }),
+      });
+      location.href = '/account';
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Authentication failed.',
+      );
+    }
+  }
   async function passkey(register: boolean) {
     try {
       setMessage('');
@@ -89,28 +106,49 @@ export function SignInPanel({
       <h1>{mode === 'register' ? 'Create your account' : 'Welcome back'}</h1>
       <p>
         {mode === 'register'
-          ? 'Create a passkey for secure, password-free access.'
-          : 'Use your passkey for phishing-resistant login.'}
+          ? 'Create an account to start planning your trips.'
+          : 'Log in to continue planning your trips.'}
       </p>
-      <label>
-        Email
-        <input
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          autoComplete="email"
-        />
-      </label>
-      {mode === 'register' && (
+      <form onSubmit={submitCredentials}>
         <label>
-          Name
+          Email
           <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            autoComplete="name"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            required
           />
         </label>
-      )}
+        {mode === 'register' && (
+          <label>
+            Name
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              autoComplete="name"
+              required
+            />
+          </label>
+        )}
+        <label>
+          Password
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete={
+              mode === 'register' ? 'new-password' : 'current-password'
+            }
+            minLength={mode === 'register' ? 8 : undefined}
+            required
+          />
+        </label>
+        <button type="submit">
+          {mode === 'register' ? 'Create account' : 'Log in'}
+        </button>
+      </form>
+      <p className="auth-divider">or continue with</p>
       <div className="auth-actions">
         <button onClick={() => passkey(mode === 'register')}>
           {mode === 'register'

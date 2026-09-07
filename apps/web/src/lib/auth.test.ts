@@ -4,10 +4,12 @@ import { NextResponse } from 'next/server';
 import {
   authorizeTrip,
   clearSessionCookie,
+  hashPassword,
   isApplePrivateRelay,
   normalizeEmail,
   setSessionCookie,
   tokenHash,
+  verifyPassword,
 } from './auth';
 
 describe('authentication security helpers', () => {
@@ -30,6 +32,17 @@ describe('authentication security helpers', () => {
   it('hashes bearer secrets before persistence', () => {
     expect(tokenHash('secret')).toMatch(/^[a-f0-9]{64}$/);
     expect(tokenHash('secret')).not.toContain('secret');
+  });
+
+  it('hashes and verifies passwords without storing the password', async () => {
+    const hash = await hashPassword('correct horse battery staple');
+
+    expect(hash).not.toContain('correct horse battery staple');
+    expect(await verifyPassword('correct horse battery staple', hash)).toBe(
+      true,
+    );
+    expect(await verifyPassword('wrong password', hash)).toBe(false);
+    expect(await verifyPassword('anything', 'invalid')).toBe(false);
   });
 
   it('sets HTTP-only same-site session cookies and clears them safely', () => {

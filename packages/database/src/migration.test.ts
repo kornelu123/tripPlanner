@@ -8,6 +8,7 @@ async function readMigrations() {
     '0001_create_trip_planning_schema.sql',
     '0004_add_authentication.sql',
     '0006_add_place_price_estimates.sql',
+    '0007_add_password_authentication.sql',
   ];
   const migrations = await Promise.all(
     names.map((name) =>
@@ -46,6 +47,7 @@ describe('database migration', () => {
     expect(migration).toContain(
       'CREATE INDEX "places_coordinates_gist_idx" ON "places" USING gist',
     );
+    expect(migration).toContain('ADD COLUMN "password_hash" text');
   });
 
   it('enables trip-scoped row-level security', async () => {
