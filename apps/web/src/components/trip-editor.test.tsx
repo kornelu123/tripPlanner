@@ -195,7 +195,7 @@ describe('TripEditor', () => {
 
   afterEach(() => {
     cleanup();
-    localStorage.clear();
+    window.localStorage.clear();
     vi.unstubAllGlobals();
   });
 
@@ -326,7 +326,7 @@ describe('TripEditor', () => {
     await user.click(screen.getByRole('button', { name: /Add place/ }));
     await user.type(screen.getByLabelText('Name'), 'Offline café');
     await waitFor(() =>
-      expect(localStorage.getItem('roamly-point-draft:test')).toContain(
+      expect(window.localStorage.getItem('roamly-point-draft:test')).toContain(
         'Offline café',
       ),
     );
