@@ -15,6 +15,8 @@ describe('SignInPanel', () => {
     render(<SignInPanel />);
 
     expect(screen.getByRole('heading', { name: 'Welcome back' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Log in' })).toBeTruthy();
+    expect(screen.getByLabelText('Password')).toBeTruthy();
     expect(
       screen.getByRole('button', { name: 'Log in with a passkey' }),
     ).toBeTruthy();
@@ -27,17 +29,27 @@ describe('SignInPanel', () => {
   });
 
   it('renders registration controls and a login link', () => {
-    render(<SignInPanel mode="register" />);
+    const registration = render(<SignInPanel mode="register" />);
 
     expect(
-      screen.getByRole('heading', { name: 'Create your account' }),
+      registration.getByRole('heading', { name: 'Create your account' }),
     ).toBeTruthy();
     expect(
-      screen.getByRole('button', { name: 'Create account with a passkey' }),
+      registration.getByRole('button', { name: 'Create account' }),
     ).toBeTruthy();
     expect(
-      screen.getByRole('link', { name: 'Log in' }).getAttribute('href'),
+      registration.container
+        .querySelector('input[autocomplete="new-password"]')
+        ?.getAttribute('minlength'),
+    ).toBe('8');
+    expect(
+      registration.getByRole('button', {
+        name: 'Create account with a passkey',
+      }),
+    ).toBeTruthy();
+    expect(
+      registration.getByRole('link', { name: 'Log in' }).getAttribute('href'),
     ).toBe('/login');
-    expect(screen.getByLabelText('Name')).toBeTruthy();
+    expect(registration.getByLabelText('Name')).toBeTruthy();
   });
 });

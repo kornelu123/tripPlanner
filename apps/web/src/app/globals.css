@@ -1206,6 +1206,19 @@ select {
   gap: 10px;
   margin-top: 22px;
 }
+.auth-card form button {
+  width: 100%;
+  border: 0;
+  border-radius: 999px;
+  padding: 13px 18px;
+  color: white;
+  background: var(--ink);
+}
+.auth-divider {
+  margin: 22px 0 0;
+  color: #57756d;
+  text-align: center;
+}
 .auth-switch {
   margin-bottom: 0;
   text-align: center;
