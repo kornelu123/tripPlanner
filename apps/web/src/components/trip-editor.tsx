@@ -103,7 +103,7 @@ export function TripEditor({ tripId }: { tripId: string }) {
   }, [loadTrip]);
 
   useEffect(() => {
-    const saved = localStorage.getItem(`roamly-point-draft:${tripId}`);
+    const saved = window.localStorage.getItem(`roamly-point-draft:${tripId}`);
     if (saved) queueMicrotask(() => setDraft(JSON.parse(saved) as PointDraft));
     const updateConnection = () => setIsOnline(navigator.onLine);
     window.addEventListener('online', updateConnection);
@@ -116,8 +116,8 @@ export function TripEditor({ tripId }: { tripId: string }) {
 
   useEffect(() => {
     const key = `roamly-point-draft:${tripId}`;
-    if (draft) localStorage.setItem(key, JSON.stringify(draft));
-    else localStorage.removeItem(key);
+    if (draft) window.localStorage.setItem(key, JSON.stringify(draft));
+    else window.localStorage.removeItem(key);
   }, [draft, tripId]);
 
   const selectPoint = useCallback((id: string) => {
