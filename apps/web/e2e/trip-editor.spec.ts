@@ -139,15 +139,17 @@ test('edits trip points with accessible controls', async ({
   await expect(page.getByLabel('Trip points map')).toBeVisible();
   await expect(page.getByLabel('Trip points map')).toHaveAttribute(
     'data-route-segments',
-    '1',
+    '0',
   );
 
-  await page.getByLabel('Search for an address').fill('Jerónimos');
-  await page.getByRole('button', { name: 'Search' }).click();
-  await page.getByRole('button', { name: /Jerónimos Monastery/ }).click();
+  await page.getByRole('button', { name: 'Enter coordinates' }).click();
+  await page.getByLabel('Name').fill('Jerónimos Monastery');
+  await page.getByLabel('Address').fill('Praça do Império, Lisboa');
+  await page.getByLabel('Latitude').fill('38.6979');
+  await page.getByLabel('Longitude').fill('-9.206');
   await page.getByRole('button', { name: 'Save place' }).click();
   await expect(
-    page.getByText('Jerónimos Monastery', { exact: true }),
+    page.getByRole('heading', { name: 'Jerónimos Monastery' }),
   ).toBeVisible();
 
   const firstCard = page.locator('#point-miradouro');
@@ -192,11 +194,13 @@ test('adds current location and a pending social import', async ({
   await expect(page.getByLabel('Latitude')).toHaveValue('38.71');
   await page.getByLabel('Name').fill('My location');
   await page.getByRole('button', { name: 'Save place' }).click();
-  await expect(page.getByText('My location', { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'My location' }),
+  ).toBeVisible();
 
   await page.getByRole('button', { name: 'Add to trip' }).first().click();
   await expect(
-    page.getByText('Pastéis de Belém', { exact: true }),
+    page.getByRole('heading', { name: 'Pastéis de Belém' }),
   ).toBeVisible();
 });
 

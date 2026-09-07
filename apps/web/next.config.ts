@@ -10,6 +10,7 @@ const workspaceEnvironment = fileURLToPath(
 if (existsSync(workspaceEnvironment)) loadEnvFile(workspaceEnvironment);
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ['127.0.0.1'],
   transpilePackages: [
     '@trip-planner/config',
     '@trip-planner/database',
