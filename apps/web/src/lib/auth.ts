@@ -1,4 +1,10 @@
-import { createHash, randomBytes } from 'node:crypto';
+import {
+  createHash,
+  randomBytes,
+  scrypt as scryptCallback,
+  timingSafeEqual,
+} from 'node:crypto';
+import { promisify } from 'node:util';
 
 import { readAuthEnvironment } from '@trip-planner/config';
 import { createAuthRepository, getDatabase } from '@trip-planner/database';
@@ -7,6 +13,7 @@ import { NextResponse } from 'next/server';
 export const sessionCookieName = '__Host-roamly_session';
 export const challengeLifetimeMs = 5 * 60 * 1000;
 const sessionLifetimeMs = 30 * 24 * 60 * 60 * 1000;
+const scrypt = promisify(scryptCallback);
 
 export const authRepository = () => createAuthRepository(getDatabase());
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();
@@ -15,6 +22,25 @@ export const isApplePrivateRelay = (email: string) =>
 export const tokenHash = (token: string) =>
   createHash('sha256').update(token).digest('hex');
 export const randomToken = () => randomBytes(32).toString('base64url');
+
+export async function hashPassword(password: string) {
+  const salt = randomBytes(16);
+  const hash = (await scrypt(password, salt, 64)) as Buffer;
+  return `scrypt:${salt.toString('base64url')}:${hash.toString('base64url')}`;
+}
+
+export async function verifyPassword(password: string, storedHash: string) {
+  const [algorithm, encodedSalt, encodedHash] = storedHash.split(':');
+  if (algorithm !== 'scrypt' || !encodedSalt || !encodedHash) return false;
+
+  const expected = Buffer.from(encodedHash, 'base64url');
+  const actual = (await scrypt(
+    password,
+    Buffer.from(encodedSalt, 'base64url'),
+    expected.length,
+  )) as Buffer;
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
 
 function cookieValue(request: Request, name: string) {
   const cookie = request.headers.get('cookie') ?? '';
