@@ -8,6 +8,7 @@ import {
   rotateSession,
   setSessionCookie,
 } from '@/lib/auth';
+import { reportError } from '@/lib/safe-logging';
 
 const registrationSchema = z.object({
   email: z.string().trim().pipe(z.email()),
@@ -28,24 +29,32 @@ export async function POST(request: Request) {
       { status: 400 },
     );
 
-  const email = normalizeEmail(parsed.data.email);
-  const repository = authRepository();
-  if (await repository.findUserByEmail(email))
-    return NextResponse.json(
-      { message: 'An account with that email already exists.' },
-      { status: 409 },
-    );
+  try {
+    const email = normalizeEmail(parsed.data.email);
+    const repository = authRepository();
+    if (await repository.findUserByEmail(email))
+      return NextResponse.json(
+        { message: 'An account with that email already exists.' },
+        { status: 409 },
+      );
 
-  const user = await repository.createUser(
-    email,
-    parsed.data.displayName,
-    await hashPassword(parsed.data.password),
-  );
-  const session = await rotateSession(request, user.id);
-  await repository.recordAuditEvent('account.created', user.id, user.id);
-  const response = NextResponse.json({
-    user: { id: user.id, email: user.email },
-  });
-  setSessionCookie(response, session.token, session.expiresAt);
-  return response;
+    const user = await repository.createUser(
+      email,
+      parsed.data.displayName,
+      await hashPassword(parsed.data.password),
+    );
+    const session = await rotateSession(request, user.id);
+    await repository.recordAuditEvent('account.created', user.id, user.id);
+    const response = NextResponse.json({
+      user: { id: user.id, email: user.email },
+    });
+    setSessionCookie(response, session.token, session.expiresAt);
+    return response;
+  } catch (error) {
+    reportError(error, { route: 'auth.register' });
+    return NextResponse.json(
+      { message: 'Could not create account. Please try again.' },
+      { status: 500 },
+    );
+  }
 }

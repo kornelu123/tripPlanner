@@ -1,15 +1,11 @@
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 
 import { describe, expect, it } from 'vitest';
 
 async function readMigrations() {
-  const names = [
-    '0000_enable_postgis_and_create_trips.sql',
-    '0001_create_trip_planning_schema.sql',
-    '0004_add_authentication.sql',
-    '0006_add_place_price_estimates.sql',
-    '0007_add_password_authentication.sql',
-  ];
+  const names = (await readdir(new URL('../migrations', import.meta.url)))
+    .filter((name) => name.endsWith('.sql'))
+    .sort();
   const migrations = await Promise.all(
     names.map((name) =>
       readFile(new URL(`../migrations/${name}`, import.meta.url), 'utf8'),
@@ -19,6 +15,21 @@ async function readMigrations() {
 }
 
 describe('database migration', () => {
+  it('registers every SQL migration in the Drizzle journal', async () => {
+    const names = (await readdir(new URL('../migrations', import.meta.url)))
+      .filter((name) => name.endsWith('.sql'))
+      .sort()
+      .map((name) => name.replace(/\.sql$/, ''));
+    const journal = JSON.parse(
+      await readFile(
+        new URL('../migrations/meta/_journal.json', import.meta.url),
+        'utf8',
+      ),
+    ) as { entries: Array<{ tag: string }> };
+
+    expect(journal.entries.map(({ tag }) => tag)).toEqual(names);
+  });
+
   it('defines every trip-planning table and the PostGIS index', async () => {
     const migration = await readMigrations();
 

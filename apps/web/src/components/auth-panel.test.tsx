@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { SignInPanel } from './auth-panel';
@@ -51,5 +51,30 @@ describe('SignInPanel', () => {
       registration.getByRole('link', { name: 'Log in' }).getAttribute('href'),
     ).toBe('/login');
     expect(registration.getByLabelText('Name')).toBeTruthy();
+  });
+
+  it('shows a useful fallback when the server returns a non-JSON error', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response('', {
+          status: 500,
+          headers: { 'content-type': 'text/html' },
+        }),
+      ),
+    );
+    const login = render(<SignInPanel />);
+    fireEvent.change(login.container.querySelector('input[type="email"]')!, {
+      target: { value: 'person@example.com' },
+    });
+    fireEvent.change(login.container.querySelector('input[type="password"]')!, {
+      target: { value: 'password123' },
+    });
+    fireEvent.submit(login.container.querySelector('form')!);
+
+    expect((await screen.findByText('Request failed.')).textContent).toBe(
+      'Request failed.',
+    );
+    vi.unstubAllGlobals();
   });
 });

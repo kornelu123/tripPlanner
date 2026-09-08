@@ -23,7 +23,11 @@ type Session = {
 
 async function jsonFetch(url: string, init?: RequestInit) {
   const response = await fetch(url, init);
-  const body = response.status === 204 ? null : await response.json();
+  const body =
+    response.status !== 204 &&
+    response.headers.get('content-type')?.includes('application/json')
+      ? await response.json()
+      : null;
   if (!response.ok) throw new Error(body?.message ?? 'Request failed.');
   return body;
 }

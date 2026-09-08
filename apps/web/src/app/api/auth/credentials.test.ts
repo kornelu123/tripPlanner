@@ -8,7 +8,10 @@ const mocks = vi.hoisted(() => ({
   verifyPassword: vi.fn(),
   rotateSession: vi.fn(),
   setSessionCookie: vi.fn(),
+  reportError: vi.fn(),
 }));
+
+vi.mock('@/lib/safe-logging', () => ({ reportError: mocks.reportError }));
 
 vi.mock('@/lib/auth', () => ({
   authRepository: () => ({
@@ -123,5 +126,26 @@ describe('password authentication routes', () => {
       expect.any(Request),
       'user-id',
     );
+  });
+
+  it('returns JSON when authentication infrastructure fails', async () => {
+    mocks.findUserByEmail.mockRejectedValue(new Error('database unavailable'));
+
+    const response = await register(
+      request('register', {
+        email: 'person@example.com',
+        displayName: 'Person',
+        password: 'password123',
+      }),
+    );
+
+    expect(response.status).toBe(500);
+    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(await response.json()).toEqual({
+      message: 'Could not create account. Please try again.',
+    });
+    expect(mocks.reportError).toHaveBeenCalledWith(expect.any(Error), {
+      route: 'auth.register',
+    });
   });
 });
