@@ -40,7 +40,7 @@ export function protectRequest(request: Request): NextResponse | undefined {
     request.headers.get('cookie')?.includes('__Host-roamly_session=')
   ) {
     const origin = request.headers.get('origin');
-    const expected = new URL(request.url).origin;
+    const expected = new URL(process.env.APP_URL ?? request.url).origin;
     if (
       origin !== expected ||
       request.headers.get('sec-fetch-site') === 'cross-site'
