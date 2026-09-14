@@ -23,6 +23,9 @@ export interface SocialMetadata {
   title?: string;
   caption?: string;
   placeName?: string;
+  authorUrl?: string;
+  thumbnailUrl?: string;
+  mediaType?: 'photo' | 'video' | 'carousel' | 'unknown';
 }
 
 export interface LocationEvidence {
@@ -46,6 +49,7 @@ export interface SocialImport {
   platform: SocialPlatform;
   status: SocialImportStatus;
   candidates: LocationCandidate[];
+  metadata?: SocialMetadata;
   failure?: { code: SocialImportFailureCode; message: string };
   createdAt: string;
   updatedAt: string;
@@ -84,13 +88,24 @@ function evidenceFrom(metadata: SocialMetadata): LocationEvidence[] {
     [metadata.title, 'title'],
   ] as const) {
     if (!text) continue;
-    const matches = text.matchAll(
+    const patterns = [
+      /(?:location|place|next stop)\s*:\s*([\p{L}\p{N}][\p{L}\p{N}'’.& -]{2,60})/giu,
       /(?:at|in|near|visit(?:ing)?|📍)\s+([\p{L}\p{N}][\p{L}\p{N}'’.& -]{2,60})/giu,
-    );
-    for (const match of matches) {
-      const candidate = match[1]?.split(/[|#\n.!?]/)[0]?.trim();
-      if (candidate) evidence.push({ text: candidate, source });
+      /#([\p{L}][\p{L}\p{N}_]{2,40})/gu,
+    ];
+    const matches: Array<{ index: number; candidate: string }> = [];
+    for (const pattern of patterns) {
+      for (const match of text.matchAll(pattern)) {
+        const candidate = match[1]
+          ?.split(/[|#\n.!?]/)[0]
+          ?.replaceAll('_', ' ')
+          .trim();
+        if (candidate) matches.push({ index: match.index, candidate });
+      }
     }
+    matches
+      .sort((a, b) => a.index - b.index)
+      .forEach(({ candidate }) => evidence.push({ text: candidate, source }));
   }
   return evidence.filter(
     ({ text }, index, all) =>

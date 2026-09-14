@@ -3,12 +3,18 @@ import { isIP } from 'node:net';
 
 import type { SocialPlatform } from '@trip-planner/domain';
 
-const rules: Record<SocialPlatform, { host: string; path: RegExp }> = {
+const rules: Record<
+  SocialPlatform,
+  { hosts: ReadonlySet<string>; paths: RegExp[] }
+> = {
   instagram: {
-    host: 'www.instagram.com',
-    path: /^\/(?:p|reel)\/([A-Za-z0-9_-]+)\/$/,
+    hosts: new Set(['www.instagram.com', 'instagram.com']),
+    paths: [/^\/(?:p|reel)\/([A-Za-z0-9_-]+)\/?$/],
   },
-  tiktok: { host: 'www.tiktok.com', path: /^\/@[A-Za-z0-9._]+\/video\/(\d+)$/ },
+  tiktok: {
+    hosts: new Set(['www.tiktok.com', 'm.tiktok.com']),
+    paths: [/^\/@[A-Za-z0-9._]+\/video\/(\d+)\/?$/, /^\/v\/(\d+)\.html$/],
+  },
 };
 
 export class UnsafeUrlError extends Error {}
@@ -27,9 +33,11 @@ export function validateSocialUrl(value: string) {
   }
   const platform = (
     Object.entries(rules) as [SocialPlatform, (typeof rules)[SocialPlatform]][]
-  ).find(([, rule]) => url.hostname === rule.host)?.[0];
+  ).find(([, rule]) => rule.hosts.has(url.hostname))?.[0];
   const rule = platform && rules[platform];
-  const match = rule?.path.exec(url.pathname);
+  const match = rule?.paths
+    .map((path) => path.exec(url.pathname))
+    .find(Boolean);
   if (
     !platform ||
     !match ||
@@ -37,14 +45,50 @@ export function validateSocialUrl(value: string) {
     url.port ||
     url.username ||
     url.password ||
-    url.search ||
     url.hash
   ) {
     throw new UnsafeUrlError(
-      'Use the canonical HTTPS URL for a public TikTok video or Instagram post/reel.',
+      'Use a public TikTok video or Instagram post/reel URL.',
     );
   }
-  return { platform, postId: match[1]!, canonicalUrl: url.href };
+  const postId = match[1]!;
+  const canonicalUrl =
+    platform === 'instagram'
+      ? `https://www.instagram.com/${url.pathname.split('/')[1]}/${postId}/`
+      : url.pathname.startsWith('/@')
+        ? `https://www.tiktok.com${url.pathname.replace(/\/$/, '')}`
+        : `https://www.tiktok.com/@_/video/${postId}`;
+  return { platform, postId, canonicalUrl };
+}
+
+export async function resolveSocialUrl(
+  value: string,
+  options: { fetcher?: typeof fetch; resolver?: Resolver } = {},
+) {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return validateSocialUrl(value);
+  }
+  if (url.hostname !== 'vm.tiktok.com' && url.hostname !== 'vt.tiktok.com')
+    return validateSocialUrl(value);
+  if (url.protocol !== 'https:' || url.port || url.username || url.password)
+    throw new UnsafeUrlError('Use a public TikTok short link.');
+  const { finalUrl } = await safeFetch(url.href, {
+    allowedHosts: new Set([
+      'vm.tiktok.com',
+      'vt.tiktok.com',
+      'www.tiktok.com',
+      'm.tiktok.com',
+    ]),
+    fetcher: options.fetcher,
+    resolver: options.resolver,
+    stopBeforeFetch: (candidate) =>
+      candidate.hostname === 'www.tiktok.com' ||
+      candidate.hostname === 'm.tiktok.com',
+  });
+  return validateSocialUrl(finalUrl);
 }
 
 function isBlockedIp(address: string) {
@@ -105,6 +149,7 @@ export async function safeFetch(
     maxBytes?: number;
     fetcher?: typeof fetch;
     resolver?: Resolver;
+    stopBeforeFetch?: (url: URL) => boolean;
   },
 ) {
   const maxRedirects = options.maxRedirects ?? 3;
@@ -116,6 +161,13 @@ export async function safeFetch(
         'Provider redirected to a host that is not allowlisted.',
       );
     await assertPublicHost(url, options.resolver);
+    if (redirects > 0 && options.stopBeforeFetch?.(url)) {
+      return {
+        response: new Response(null, { status: 204 }),
+        body: '',
+        finalUrl: url.href,
+      };
+    }
     const response = await (options.fetcher ?? fetch)(url, {
       redirect: 'manual',
       signal: AbortSignal.timeout(8_000),
@@ -145,6 +197,10 @@ export async function safeFetch(
       }
       chunks.push(value);
     }
-    return { response, body: new TextDecoder().decode(Buffer.concat(chunks)) };
+    return {
+      response,
+      body: new TextDecoder().decode(Buffer.concat(chunks)),
+      finalUrl: url.href,
+    };
   }
 }

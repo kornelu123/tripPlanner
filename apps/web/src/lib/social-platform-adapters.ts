@@ -48,6 +48,30 @@ async function oEmbed(endpoint: URL, host: string) {
   }
 }
 
+function optionalString(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function metadataFromOEmbed(
+  data: Record<string, unknown>,
+): Pick<
+  SocialMetadata,
+  'authorName' | 'authorUrl' | 'thumbnailUrl' | 'mediaType'
+> {
+  const type = optionalString(data.type);
+  return {
+    authorName: optionalString(data.author_name),
+    authorUrl: optionalString(data.author_url),
+    thumbnailUrl: optionalString(data.thumbnail_url),
+    mediaType:
+      type === 'photo' || type === 'video'
+        ? type
+        : type === 'rich'
+          ? ('carousel' as const)
+          : ('unknown' as const),
+  };
+}
+
 export function createPlatformAdapters(
   instagramAccessToken = process.env.INSTAGRAM_ACCESS_TOKEN,
 ): Record<SocialPlatform, SocialPlatformAdapter> {
@@ -62,8 +86,8 @@ export function createPlatformAdapters(
           platform: 'tiktok',
           canonicalUrl: url,
           postId,
-          authorName: String(data.author_name ?? ''),
-          title: String(data.title ?? ''),
+          ...metadataFromOEmbed(data),
+          caption: optionalString(data.title),
         };
       },
     },
@@ -85,8 +109,8 @@ export function createPlatformAdapters(
           platform: 'instagram',
           canonicalUrl: url,
           postId,
-          authorName: String(data.author_name ?? ''),
-          title: String(data.title ?? ''),
+          ...metadataFromOEmbed(data),
+          caption: optionalString(data.title),
         };
       },
     },

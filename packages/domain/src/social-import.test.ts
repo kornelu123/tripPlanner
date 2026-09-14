@@ -57,4 +57,29 @@ describe('SocialImport', () => {
       evidence: [{ text: 'Central Market', source: 'caption' }],
     });
   });
+
+  it('extracts multiple locations from labels, natural language, and hashtags', async () => {
+    const searches: string[] = [];
+    await extractLocationCandidates(
+      {
+        ...metadata,
+        platform: 'instagram',
+        caption:
+          'Location: Alfama\nDinner at Central Market. Next stop: Belém Tower #Lisbon',
+      },
+      {
+        search: async (query) => {
+          searches.push(query);
+          return [];
+        },
+        reverse: async () => null,
+      },
+    );
+    expect(searches).toEqual([
+      'Alfama',
+      'Central Market',
+      'Belém Tower',
+      'Lisbon',
+    ]);
+  });
 });

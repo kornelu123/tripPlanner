@@ -2,7 +2,7 @@
 
 ## Provider prerequisites and limitations
 
-Imports accept only canonical public post URLs on `www.tiktok.com` and canonical public post/reel URLs on `www.instagram.com`. Short links, stories, profile pages, query strings, and other hosts are unsupported. TikTok uses its public oEmbed endpoint. Instagram uses Meta's Instagram oEmbed endpoint and requires `INSTAGRAM_ACCESS_TOKEN` for an approved Meta application with the permissions required by Meta at deployment time. Operators must verify that provider approval, terms, quotas, and available fields remain suitable.
+Imports accept public TikTok video and Instagram post/reel URLs. Common mobile, share-query, and Instagram hostname variants are normalized; TikTok `vm.tiktok.com` and `vt.tiktok.com` short links are resolved through an SSRF-protected, size-limited request. Stories, profile pages, and other hosts remain unsupported. TikTok uses its public oEmbed endpoint. Instagram uses Meta's Instagram oEmbed endpoint and requires `INSTAGRAM_ACCESS_TOKEN` for an approved Meta application with the permissions required by Meta at deployment time. Available captions, author details, thumbnail URLs, and media types are retained with the import. Operators must verify that provider approval, terms, quotas, and available fields remain suitable.
 
 Private, deleted, age/region-restricted, or unavailable posts cannot be imported. Embed APIs expose less data than first-party applications, so visible locations may be absent. The API reports `private_post`, `unsupported_link`, `metadata_unavailable`, `rate_limited`, or `no_location_detected`.
 
