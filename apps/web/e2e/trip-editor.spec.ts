@@ -117,6 +117,9 @@ test.beforeEach(async ({ page }) => {
     points = points.map((item) => (item.id === id ? point : item));
     await route.fulfill({ json: point });
   });
+  await page.route('**/api/trips/*/imports', async (route) => {
+    await route.fulfill({ status: 202, json: { status: 'queued' } });
+  });
   await page.route('**/api/categories/*?*', async (route) => {
     const update = route.request().postDataJSON();
     const category = {
@@ -202,6 +205,22 @@ test('adds current location and a pending social import', async ({
   await expect(
     page.getByRole('heading', { name: 'Pastéis de Belém' }),
   ).toBeVisible();
+});
+
+test('adds places from a social media post in map management', async ({
+  page,
+}, testInfo) => {
+  await page.goto(`/trips/social-${testInfo.project.name}`);
+
+  await page.getByRole('button', { name: 'Add from social media' }).click();
+  await page
+    .getByLabel('Instagram or TikTok post URL')
+    .fill('https://www.instagram.com/reel/AbC123/');
+  await page.getByRole('button', { name: 'Find places' }).click();
+
+  await expect(page.locator('.sr-status')).toContainText(
+    'Social post submitted',
+  );
 });
 
 test('uses dedicated map and places views on narrow iPhones', async ({
