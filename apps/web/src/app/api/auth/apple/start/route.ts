@@ -10,7 +10,12 @@ import {
 
 export async function GET(request: Request) {
   const env = readAuthEnvironment();
-  if (!env.APPLE_CLIENT_ID)
+  if (
+    !env.APPLE_CLIENT_ID ||
+    !env.APPLE_TEAM_ID ||
+    !env.APPLE_KEY_ID ||
+    !env.APPLE_PRIVATE_KEY
+  )
     return NextResponse.json(
       { message: 'Apple login is not configured.' },
       { status: 503 },

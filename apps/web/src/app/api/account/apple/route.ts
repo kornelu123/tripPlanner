@@ -22,9 +22,12 @@ export async function GET(request: Request) {
 export async function DELETE(request: Request) {
   const auth = await authenticated(request);
   if (auth.error) return auth.error;
-  if ((await authRepository().listPasskeys(auth.user.id)).length === 0)
+  if (
+    !auth.user.passwordHash &&
+    (await authRepository().listPasskeys(auth.user.id)).length === 0
+  )
     return NextResponse.json(
-      { message: 'Register a passkey before unlinking Apple.' },
+      { message: 'Add a password or passkey before unlinking Apple.' },
       { status: 409 },
     );
   await authRepository().unlinkApple(auth.user.id);
