@@ -1,4 +1,8 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
+
+import { MapDashboard } from '@/components/map-dashboard';
+import { currentSession, sessionCookieName } from '@/lib/auth';
 
 const itinerary = [
   {
@@ -21,7 +25,18 @@ const itinerary = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(sessionCookieName)?.value;
+  if (token) {
+    const session = await currentSession(
+      new Request('http://localhost/', {
+        headers: { cookie: `${sessionCookieName}=${token}` },
+      }),
+    );
+    if (session) return <MapDashboard user={session.user} />;
+  }
+
   return (
     <main>
       <nav className="nav" aria-label="Primary navigation">

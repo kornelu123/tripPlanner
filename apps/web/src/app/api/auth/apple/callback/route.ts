@@ -131,7 +131,7 @@ async function completeAppleSignIn(request: Request) {
     user.id,
     user.id,
   );
-  const response = NextResponse.redirect(new URL('/account', env.APP_URL));
+  const response = NextResponse.redirect(new URL('/', env.APP_URL));
   setSessionCookie(response, session.token, session.expiresAt);
   return response;
 }

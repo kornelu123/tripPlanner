@@ -109,6 +109,16 @@ integration('trip repository', () => {
     await repository.addMember(owner!.id, trip!.id, editor!.id, 'editor');
     await repository.addMember(owner!.id, trip!.id, viewer!.id, 'viewer');
 
+    expect(await repository.listTrips(owner!.id)).toMatchObject([
+      { id: trip!.id, role: 'owner' },
+    ]);
+    expect(await repository.listTrips(editor!.id)).toMatchObject([
+      { id: trip!.id, role: 'editor' },
+    ]);
+    expect(await repository.listMembers(owner!.id, trip!.id)).toHaveLength(2);
+    expect(
+      await repository.listMembers(stranger!.id, trip!.id),
+    ).toBeUndefined();
     expect(await repository.getTrip(editor!.id, trip!.id)).toBeDefined();
     expect(await repository.getTrip(viewer!.id, trip!.id)).toBeDefined();
     expect(await repository.getTrip(stranger!.id, trip!.id)).toBeUndefined();
@@ -119,6 +129,10 @@ integration('trip repository', () => {
       await repository.renameTrip(viewer!.id, trip!.id, 'Forbidden'),
     ).toBeUndefined();
     expect(await repository.deleteTrip(editor!.id, trip!.id)).toBeUndefined();
+    expect(
+      await repository.removeMember(owner!.id, trip!.id, viewer!.id),
+    ).toBeDefined();
+    expect(await repository.getTrip(viewer!.id, trip!.id)).toBeUndefined();
   });
 
   it('cascades trip data, nulls deleted categories, and retains places', async () => {

@@ -50,7 +50,7 @@ export function SignInPanel({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ email, password, displayName: name }),
       });
-      location.href = '/account';
+      location.href = '/';
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : 'Authentication failed.',
@@ -80,7 +80,7 @@ export function SignInPanel({
           name: 'Primary passkey',
         }),
       });
-      location.href = '/account';
+      location.href = '/';
     } catch (error) {
       setMessage(
         error instanceof Error && error.name === 'NotAllowedError'

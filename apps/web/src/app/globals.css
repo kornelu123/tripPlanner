@@ -379,6 +379,272 @@ h1 em {
   }
 }
 
+.dashboard {
+  min-height: 100dvh;
+  padding: 0 max(24px, calc((100% - 1180px) / 2)) 72px;
+  background:
+    radial-gradient(
+      circle at 88% 4%,
+      rgba(242, 200, 120, 0.42),
+      transparent 25rem
+    ),
+    var(--cream);
+}
+.dashboard-nav {
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+.dashboard-nav > div {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  font-size: 14px;
+}
+.dashboard-nav > div a {
+  padding: 10px 16px;
+  border: 1px solid var(--ink);
+  border-radius: 99px;
+}
+.dashboard-header {
+  display: grid;
+  grid-template-columns: 1fr minmax(320px, 420px);
+  align-items: end;
+  gap: 60px;
+  padding: 74px 0 48px;
+}
+.dashboard-header h1 {
+  font-size: clamp(44px, 5vw, 68px);
+}
+.dashboard-header > div > p:last-child {
+  max-width: 590px;
+  color: #577069;
+  line-height: 1.6;
+}
+.create-map {
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 14px 40px rgba(24, 61, 52, 0.08);
+}
+.create-map label,
+.share-dialog label {
+  display: grid;
+  gap: 7px;
+  color: #526c64;
+  font-size: 12px;
+  font-weight: 600;
+}
+.create-map > div {
+  display: flex;
+  margin-top: 8px;
+}
+.create-map input {
+  flex: 1;
+  border-radius: 9px 0 0 9px;
+}
+.create-map button,
+.share-dialog form > button {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 0 9px 9px 0;
+  color: white;
+  background: var(--ink);
+  font-weight: 600;
+}
+.dashboard-message {
+  min-height: 24px;
+  margin: 0;
+  color: #6e4b28;
+  font-size: 13px;
+}
+.map-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+.map-card {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fffdf8;
+  box-shadow: 0 12px 34px rgba(24, 61, 52, 0.08);
+}
+.map-art {
+  min-height: 118px;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(
+      125deg,
+      transparent 48%,
+      rgba(24, 61, 52, 0.14) 49%,
+      transparent 51%
+    ),
+    linear-gradient(35deg, #bed0b2, #f2c878);
+}
+.map-art span,
+.empty-maps > span {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  color: white;
+  background: var(--orange);
+  font-size: 28px;
+  box-shadow: 0 8px 18px rgba(24, 61, 52, 0.2);
+}
+.map-card-body {
+  padding: 20px;
+}
+.role-badge {
+  padding: 5px 8px;
+  border-radius: 99px;
+  color: #49645c;
+  background: #e6eddf;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.map-card h2 {
+  margin: 13px 0 4px;
+  font:
+    700 24px 'Playfair Display',
+    serif;
+}
+.map-card p {
+  margin: 0 0 20px;
+  color: #70847e;
+  font-size: 12px;
+}
+.map-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.map-actions a,
+.map-actions button,
+.share-dialog li button {
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: white;
+  font-size: 12px;
+  font-weight: 600;
+}
+.map-actions a {
+  display: inline-flex;
+  align-items: center;
+  color: white;
+  background: var(--ink);
+}
+.map-actions .danger {
+  color: #9d3d24;
+}
+.empty-maps {
+  display: grid;
+  justify-items: center;
+  padding: 70px 20px;
+  border: 1px dashed #9bad9e;
+  border-radius: 18px;
+  text-align: center;
+}
+.empty-maps h2 {
+  margin: 18px 0 4px;
+  font-family: 'Playfair Display', serif;
+}
+.empty-maps p {
+  color: #70847e;
+}
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(24, 61, 52, 0.52);
+}
+.share-dialog {
+  position: relative;
+  width: min(100%, 560px);
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+  padding: 30px;
+  border-radius: 20px;
+  background: #fffdf8;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
+}
+.share-dialog h2 {
+  margin: 0 0 22px;
+  font:
+    700 32px 'Playfair Display',
+    serif;
+}
+.dialog-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  border: 0;
+  background: transparent;
+  font-size: 24px;
+}
+.share-dialog form {
+  display: grid;
+  grid-template-columns: 1fr 130px auto;
+  align-items: end;
+  gap: 9px;
+}
+.share-dialog form > button {
+  border-radius: 9px;
+}
+.share-dialog h3 {
+  margin-top: 28px;
+}
+.share-dialog ul {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+.share-dialog li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px;
+  border-radius: 10px;
+  background: #f0f3ed;
+}
+.share-dialog li small {
+  display: block;
+  margin-top: 2px;
+  color: #70847e;
+}
+
+@media (max-width: 800px) {
+  .dashboard-header,
+  .map-grid {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-header {
+    gap: 24px;
+    padding: 48px 0 32px;
+  }
+  .dashboard-nav > div > span {
+    display: none;
+  }
+  .share-dialog form {
+    grid-template-columns: 1fr;
+  }
+}
+
 .trip-editor {
   min-height: 100dvh;
   padding-top: env(safe-area-inset-top);

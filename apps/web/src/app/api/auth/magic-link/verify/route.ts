@@ -26,7 +26,7 @@ export async function GET(request: Request) {
       { status: 410 },
     );
   const session = await rotateSession(request, challenge.userId);
-  const response = NextResponse.redirect(new URL('/account', request.url));
+  const response = NextResponse.redirect(new URL('/', request.url));
   setSessionCookie(response, session.token, session.expiresAt);
   return response;
 }
