@@ -22,6 +22,11 @@ describe('SignInPanel', () => {
     ).toBeTruthy();
     expect(
       screen
+        .getByRole('link', { name: 'Log in with Apple' })
+        .getAttribute('href'),
+    ).toBe('/api/auth/apple/start');
+    expect(
+      screen
         .getByRole('link', { name: 'Create an account' })
         .getAttribute('href'),
     ).toBe('/register');
@@ -47,6 +52,11 @@ describe('SignInPanel', () => {
         name: 'Create account with a passkey',
       }),
     ).toBeTruthy();
+    expect(
+      registration
+        .getByRole('link', { name: 'Sign up with Apple' })
+        .getAttribute('href'),
+    ).toBe('/api/auth/apple/start');
     expect(
       registration.getByRole('link', { name: 'Log in' }).getAttribute('href'),
     ).toBe('/login');

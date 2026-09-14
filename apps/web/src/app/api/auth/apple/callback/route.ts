@@ -9,12 +9,24 @@ import {
   setSessionCookie,
   tokenHash,
 } from '@/lib/auth';
+import { reportError } from '@/lib/safe-logging';
 
 export async function POST(request: Request) {
+  try {
+    return await completeAppleSignIn(request);
+  } catch (error) {
+    reportError(error, { route: 'auth.apple.callback' });
+    return NextResponse.json(
+      { message: 'Apple sign-in could not be completed. Please try again.' },
+      { status: 500 },
+    );
+  }
+}
+
+async function completeAppleSignIn(request: Request) {
   const form = await request.formData();
   const state = form.get('state');
   const code = form.get('code');
-  const postedToken = form.get('id_token');
   if (typeof state !== 'string' || typeof code !== 'string')
     return NextResponse.json(
       { message: 'Apple sign-in was cancelled or invalid.' },
@@ -47,9 +59,12 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   const tokens = (await exchange.json()) as { id_token?: string };
-  const identity = await verifyAppleIdentityToken(
-    tokens.id_token ?? (typeof postedToken === 'string' ? postedToken : ''),
-  );
+  if (!tokens.id_token)
+    return NextResponse.json(
+      { message: 'Apple sign-in could not be verified.' },
+      { status: 401 },
+    );
+  const identity = await verifyAppleIdentityToken(tokens.id_token);
   const existing = await authRepository().findAppleAccount(identity.subject);
   let user;
   if (challenge.userId) {
@@ -111,6 +126,11 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   const session = await rotateSession(request, user.id);
+  await authRepository().recordAuditEvent(
+    challenge.userId ? 'credential.apple_linked' : 'login.apple_succeeded',
+    user.id,
+    user.id,
+  );
   const response = NextResponse.redirect(new URL('/account', env.APP_URL));
   setSessionCookie(response, session.token, session.expiresAt);
   return response;

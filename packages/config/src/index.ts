@@ -13,16 +13,30 @@ export function readServerEnvironment(
   return serverEnvironmentSchema.parse(environment);
 }
 
-const authEnvironmentSchema = z.object({
-  APP_URL: z.url(),
-  WEBAUTHN_RP_ID: z.string().min(1),
-  APPLE_CLIENT_ID: z.string().min(1).optional(),
-  APPLE_TEAM_ID: z.string().min(1).optional(),
-  APPLE_KEY_ID: z.string().min(1).optional(),
-  APPLE_PRIVATE_KEY: z.string().min(1).optional(),
-  SMTP_URL: z.url().optional(),
-  EMAIL_FROM: z.email().optional(),
-});
+const authEnvironmentSchema = z
+  .object({
+    APP_URL: z.url(),
+    WEBAUTHN_RP_ID: z.string().min(1),
+    APPLE_CLIENT_ID: z.string().min(1).optional(),
+    APPLE_TEAM_ID: z.string().min(1).optional(),
+    APPLE_KEY_ID: z.string().min(1).optional(),
+    APPLE_PRIVATE_KEY: z.string().min(1).optional(),
+    SMTP_URL: z.url().optional(),
+    EMAIL_FROM: z.email().optional(),
+  })
+  .superRefine((environment, context) => {
+    const appleValues = [
+      environment.APPLE_CLIENT_ID,
+      environment.APPLE_TEAM_ID,
+      environment.APPLE_KEY_ID,
+      environment.APPLE_PRIVATE_KEY,
+    ];
+    if (appleValues.some(Boolean) && !appleValues.every(Boolean))
+      context.addIssue({
+        code: 'custom',
+        message: 'All Apple login credentials must be configured together.',
+      });
+  });
 
 export type AuthEnvironment = z.infer<typeof authEnvironmentSchema>;
 
