@@ -179,6 +179,9 @@ describe('TripEditor', () => {
           points.push(created);
           return Response.json(created, { status: 201 });
         }
+        if (url.endsWith('/imports') && init?.method === 'POST') {
+          return Response.json({ status: 'queued' }, { status: 202 });
+        }
         if (url.endsWith('/price') && init?.method === 'POST') {
           return Response.json({ status: 'queued' }, { status: 202 });
         }
@@ -227,6 +230,34 @@ describe('TripEditor', () => {
     expect(
       await screen.findByText('Social place', { selector: 'strong' }),
     ).toBeTruthy();
+  });
+
+  it('submits a social media post from map management', async () => {
+    const user = userEvent.setup();
+    render(<TripEditor tripId="test" />);
+    await screen.findByText('First place');
+
+    const button = screen.getByRole('button', {
+      name: 'Add from social media',
+    });
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    await user.click(button);
+    await user.type(
+      screen.getByLabelText('Instagram or TikTok post URL'),
+      'https://www.instagram.com/reel/AbC123/',
+    );
+    await user.click(screen.getByRole('button', { name: 'Find places' }));
+
+    await screen.findByText(
+      'Social post submitted. We’ll look for places to add.',
+    );
+    expect(fetch).toHaveBeenCalledWith('/api/trips/test/imports', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: 'https://www.instagram.com/reel/AbC123/',
+      }),
+    });
   });
 
   it('distinguishes sourced estimates, stale data, loading, and unavailable prices', async () => {

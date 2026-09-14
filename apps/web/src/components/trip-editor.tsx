@@ -81,6 +81,11 @@ export function TripEditor({ tripId }: { tripId: string }) {
   const [searchState, setSearchState] = useState<
     'idle' | 'loading' | 'empty' | 'error'
   >('idle');
+  const [showSocialImport, setShowSocialImport] = useState(false);
+  const [socialUrl, setSocialUrl] = useState('');
+  const [socialImportState, setSocialImportState] = useState<
+    'idle' | 'loading' | 'error'
+  >('idle');
   const [routeState, setRouteState] = useState<'idle' | 'loading' | 'error'>(
     'idle',
   );
@@ -211,6 +216,24 @@ export function TripEditor({ tripId }: { tripId: string }) {
       ({ coords }) => void beginDraftAt(coords.latitude, coords.longitude),
       () => setStatus('Location permission was not granted.'),
     );
+  }
+
+  async function importSocialPost(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSocialImportState('loading');
+    const response = await fetch(`/api/trips/${tripId}/imports`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: socialUrl }),
+    });
+    if (!response.ok) {
+      setSocialImportState('error');
+      return;
+    }
+    setSocialUrl('');
+    setShowSocialImport(false);
+    setSocialImportState('idle');
+    setStatus('Social post submitted. We’ll look for places to add.');
   }
 
   function addPending(item: PendingImport) {
@@ -606,7 +629,58 @@ export function TripEditor({ tripId }: { tripId: string }) {
             <button type="button" onClick={() => setDraft(emptyDraft)}>
               Enter coordinates
             </button>
+            <button
+              className="social-import-button"
+              type="button"
+              aria-expanded={showSocialImport}
+              aria-controls="social-import-form"
+              onClick={() => {
+                setShowSocialImport((current) => !current);
+                setSocialImportState('idle');
+              }}
+            >
+              Add from social media
+            </button>
           </div>
+
+          {showSocialImport && (
+            <form
+              id="social-import-form"
+              className="social-import-form"
+              onSubmit={(event) => void importSocialPost(event)}
+            >
+              <label htmlFor="social-post-url">
+                Instagram or TikTok post URL
+              </label>
+              <div>
+                <input
+                  id="social-post-url"
+                  type="url"
+                  value={socialUrl}
+                  placeholder="https://www.instagram.com/reel/…"
+                  required
+                  autoFocus
+                  onChange={(event) => setSocialUrl(event.target.value)}
+                />
+                <button
+                  type="submit"
+                  disabled={socialImportState === 'loading'}
+                >
+                  {socialImportState === 'loading' ? 'Adding…' : 'Find places'}
+                </button>
+              </div>
+              <p>
+                We’ll send this public post URL to Instagram or TikTok and use
+                its location details to suggest places for your confirmation.
+              </p>
+              {socialImportState === 'error' && (
+                <p className="form-error" role="alert">
+                  We couldn’t import that post. Check that it’s a public
+                  Instagram post or reel, or a public TikTok video.
+                </p>
+              )}
+            </form>
+          )}
 
           <section
             className="category-manager"
