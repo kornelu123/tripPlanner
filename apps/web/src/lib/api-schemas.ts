@@ -33,11 +33,12 @@ export const pointUpdateSchema = pointDraftSchema
 export const importSchema = z.strictObject({ url: z.string().url().max(2048) });
 export const routePlanSchema = z.strictObject({
   pointIds: z.array(id).min(2).max(100),
-  mode: z.enum(['walking', 'driving']),
+  mode: z.enum(['walking', 'driving', 'transit']),
   roundTrip: z.boolean(),
   optimize: z.boolean().optional(),
   fixedStartId: id.optional(),
   fixedEndId: id.optional(),
+  departureTime: z.iso.datetime().optional(),
 });
 
 export async function parseJson<T>(

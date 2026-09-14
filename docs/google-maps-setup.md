@@ -23,11 +23,16 @@ are the security boundary—not secrecy of the browser key.
 
 ## Server credential
 
-If a server-side Google API is added, store its credential only as
-`GOOGLE_MAPS_SERVER_API_KEY`. Restrict it to the individual server APIs and to
-the deployment's static egress IP addresses where that API supports IP
-restrictions. Never pass it to a Client Component, API response, log, or a
-`NEXT_PUBLIC_` variable.
+Public-transit directions use the **Routes API** on the server. Enable Routes
+API, store its credential only as `GOOGLE_MAPS_SERVER_API_KEY`, and restrict the
+key to Routes API and the deployment's static egress IP addresses. Never pass
+it to a Client Component, API response, log, or a `NEXT_PUBLIC_` variable.
+
+Transit plans require a future departure time and contain Google's scheduled
+walking and vehicle steps, including buses, metro, tram, commuter and local
+rail where the regional transit agencies provide that data. A plan is limited
+to ten stops because transit optimization performs scheduled point-to-point
+route requests and is subject to Routes API quotas and billing.
 
 ## Operations and data handling
 

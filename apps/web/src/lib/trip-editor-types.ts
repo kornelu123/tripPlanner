@@ -71,7 +71,34 @@ export interface TripEditorData {
   previousRoutePlan?: RoutePlan;
 }
 
-export type TravelMode = 'walking' | 'driving';
+export type TravelMode = 'walking' | 'driving' | 'transit';
+
+export interface TransitDetails {
+  arrivalStop: { name: string; coordinates: Coordinates };
+  arrivalTime: string;
+  departureStop: { name: string; coordinates: Coordinates };
+  departureTime: string;
+  headsign: string;
+  lineName: string;
+  lineShortName?: string;
+  agencyName?: string;
+  vehicleName: string;
+  vehicleType: string;
+  stopCount: number;
+}
+
+interface Coordinates {
+  latitude: number;
+  longitude: number;
+}
+
+export interface RouteStep {
+  distanceMeters: number;
+  durationSeconds: number;
+  instructions?: string;
+  mode: TravelMode;
+  transit?: TransitDetails;
+}
 
 export interface RouteLeg {
   fromPointId: string;
@@ -79,6 +106,9 @@ export interface RouteLeg {
   distanceMeters: number;
   durationSeconds: number;
   geometry: Array<{ latitude: number; longitude: number }>;
+  departureTime?: string;
+  arrivalTime?: string;
+  steps?: RouteStep[];
 }
 
 export interface RoutePlan {
@@ -93,6 +123,8 @@ export interface RoutePlan {
   optimizationMethod: 'exact' | 'heuristic' | 'manual';
   provider: { provider: string; profile: string; attribution?: string };
   legs: RouteLeg[];
+  departureTime?: string;
+  arrivalTime?: string;
 }
 
 export interface RoutePlanRequest {
@@ -102,6 +134,7 @@ export interface RoutePlanRequest {
   fixedStartId?: string;
   fixedEndId?: string;
   optimize?: boolean;
+  departureTime?: string;
 }
 
 export interface PointDraft {

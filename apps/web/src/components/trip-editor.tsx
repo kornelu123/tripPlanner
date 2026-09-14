@@ -31,6 +31,22 @@ async function reverseGeocode(latitude: number, longitude: number) {
   return (await response.json()) as PointDraft;
 }
 
+function localDateTime(value = new Date(Date.now() + 15 * 60_000)) {
+  const offset = value.getTimezoneOffset() * 60_000;
+  return new Date(value.getTime() - offset).toISOString().slice(0, 16);
+}
+
+function displayTime(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
+function vehicleLabel(value: string) {
+  return value.toLowerCase().replaceAll('_', ' ');
+}
+
 export function TripEditor({ tripId }: { tripId: string }) {
   const [data, setData] = useState<TripEditorData | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -46,6 +62,8 @@ export function TripEditor({ tripId }: { tripId: string }) {
   const [routeOrder, setRouteOrder] = useState<string[]>([]);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [travelMode, setTravelMode] = useState<TravelMode>('walking');
+  const [departureTime, setDepartureTime] = useState(localDateTime);
+  const [minimumDepartureTime] = useState(localDateTime);
   const [roundTrip, setRoundTrip] = useState(false);
   const [fixedStartId, setFixedStartId] = useState('');
   const [fixedEndId, setFixedEndId] = useState('');
@@ -93,6 +111,10 @@ export function TripEditor({ tripId }: { tripId: string }) {
           setRoundTrip(loaded.routePlan.roundTrip);
           setFixedStartId(loaded.routePlan.fixedStartId ?? '');
           setFixedEndId(loaded.routePlan.fixedEndId ?? '');
+          if (loaded.routePlan.departureTime)
+            setDepartureTime(
+              localDateTime(new Date(loaded.routePlan.departureTime)),
+            );
         }
       })
       .catch((error: Error) => setStatus(error.message));
@@ -378,6 +400,13 @@ export function TripEditor({ tripId }: { tripId: string }) {
   }
 
   async function calculateRoute(optimize: boolean) {
+    if (
+      travelMode === 'transit' &&
+      (!departureTime || Date.parse(departureTime) <= Date.now())
+    ) {
+      setStatus('Choose a future departure time for public transit.');
+      return;
+    }
     setStatus('Calculating route…');
     setRouteState('loading');
     const response = await fetch(`/api/trips/${tripId}/routes`, {
@@ -390,6 +419,10 @@ export function TripEditor({ tripId }: { tripId: string }) {
         fixedStartId: fixedStartId || undefined,
         fixedEndId: roundTrip ? undefined : fixedEndId || undefined,
         optimize,
+        departureTime:
+          travelMode === 'transit'
+            ? new Date(departureTime).toISOString()
+            : undefined,
       }),
     }).catch(() => null);
     if (!response) {
@@ -438,6 +471,8 @@ export function TripEditor({ tripId }: { tripId: string }) {
     setRoundTrip(routePlan.roundTrip);
     setFixedStartId(routePlan.fixedStartId ?? '');
     setFixedEndId(routePlan.fixedEndId ?? '');
+    if (routePlan.departureTime)
+      setDepartureTime(localDateTime(new Date(routePlan.departureTime)));
     setStatus('Previous saved route restored.');
   }
 
@@ -802,8 +837,21 @@ export function TripEditor({ tripId }: { tripId: string }) {
                 >
                   <option value="walking">Walking</option>
                   <option value="driving">Driving</option>
+                  <option value="transit">Public transit</option>
                 </select>
               </label>
+              {travelMode === 'transit' && (
+                <label>
+                  Depart at
+                  <input
+                    type="datetime-local"
+                    required
+                    min={minimumDepartureTime}
+                    value={departureTime}
+                    onChange={(event) => setDepartureTime(event.target.value)}
+                  />
+                </label>
+              )}
               <label>
                 Fixed start
                 <select
@@ -881,14 +929,20 @@ export function TripEditor({ tripId }: { tripId: string }) {
             <div className="route-actions">
               <button
                 type="button"
-                disabled={routeOrder.length < 2}
+                disabled={
+                  routeOrder.length < 2 ||
+                  (travelMode === 'transit' && !departureTime)
+                }
                 onClick={() => void calculateRoute(true)}
               >
                 Optimize route
               </button>
               <button
                 type="button"
-                disabled={routeOrder.length < 2}
+                disabled={
+                  routeOrder.length < 2 ||
+                  (travelMode === 'transit' && !departureTime)
+                }
                 onClick={() => void calculateRoute(false)}
               >
                 Recalculate order
@@ -916,6 +970,12 @@ export function TripEditor({ tripId }: { tripId: string }) {
                         {(leg.distanceMeters / 1000).toFixed(1)} km ·{' '}
                         {Math.round(leg.durationSeconds / 60)} min
                       </strong>
+                      {leg.departureTime && leg.arrivalTime && (
+                        <small>
+                          {displayTime(leg.departureTime)} –{' '}
+                          {displayTime(leg.arrivalTime)}
+                        </small>
+                      )}
                     </button>
                   </li>
                 ))}
@@ -1247,8 +1307,55 @@ export function TripEditor({ tripId }: { tripId: string }) {
           />
           {selectedLeg && (
             <div className="route-leg-details" role="status">
-              Route leg: {(selectedLeg.distanceMeters / 1000).toFixed(1)} km ·{' '}
-              {Math.round(selectedLeg.durationSeconds / 60)} min
+              <strong>
+                Route leg: {(selectedLeg.distanceMeters / 1000).toFixed(1)} km ·{' '}
+                {Math.round(selectedLeg.durationSeconds / 60)} min
+              </strong>
+              {selectedLeg.departureTime && selectedLeg.arrivalTime && (
+                <span>
+                  {displayTime(selectedLeg.departureTime)} –{' '}
+                  {displayTime(selectedLeg.arrivalTime)}
+                </span>
+              )}
+              {selectedLeg.steps && (
+                <ol className="transit-steps" aria-label="Transit directions">
+                  {selectedLeg.steps.map((step, index) => (
+                    <li
+                      key={`${index}-${step.transit?.departureTime ?? step.mode}`}
+                    >
+                      {step.transit ? (
+                        <>
+                          <strong>
+                            {step.transit.lineShortName
+                              ? `${step.transit.lineShortName} · ${step.transit.lineName}`
+                              : step.transit.lineName}{' '}
+                            · {step.transit.vehicleName} (
+                            {vehicleLabel(step.transit.vehicleType)})
+                          </strong>
+                          <span>
+                            {step.transit.departureStop.name} at{' '}
+                            {displayTime(step.transit.departureTime)} →{' '}
+                            {step.transit.arrivalStop.name} at{' '}
+                            {displayTime(step.transit.arrivalTime)}
+                          </span>
+                          <span>
+                            Toward {step.transit.headsign} ·{' '}
+                            {step.transit.stopCount} stops
+                            {step.transit.agencyName
+                              ? ` · ${step.transit.agencyName}`
+                              : ''}
+                          </span>
+                        </>
+                      ) : (
+                        <span>
+                          {step.instructions ?? 'Walk'} ·{' '}
+                          {Math.round(step.durationSeconds / 60)} min
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              )}
             </div>
           )}
         </section>

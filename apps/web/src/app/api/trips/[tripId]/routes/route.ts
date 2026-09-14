@@ -6,6 +6,10 @@ import {
   RoutingProviderError,
 } from '../../../../../lib/osrm-routing-provider';
 import {
+  GoogleTransitRoutingProvider,
+  GoogleTransitRoutingProviderError,
+} from '../../../../../lib/google-transit-routing-provider';
+import {
   getTripEditorData,
   restorePreviousRoutePlan,
   saveRoutePlan,
@@ -51,11 +55,24 @@ export async function POST(request: Request, { params }: Context) {
     | undefined;
   const data = getTripEditorData(tripId);
   if (
+    input?.mode === 'transit' &&
+    (!input.departureTime || Date.parse(input.departureTime) <= Date.now())
+  )
+    return NextResponse.json(
+      { message: 'Choose a future departure time for public transit.' },
+      { status: 400 },
+    );
+  if (input?.mode === 'transit' && input.pointIds.length > 10)
+    return NextResponse.json(
+      { message: 'Public transit routes support up to 10 stops.' },
+      { status: 400 },
+    );
+  if (
     !input ||
     !Array.isArray(input.pointIds) ||
     input.pointIds.length < 2 ||
     new Set(input.pointIds).size !== input.pointIds.length ||
-    !['walking', 'driving'].includes(input.mode) ||
+    !['walking', 'driving', 'transit'].includes(input.mode) ||
     typeof input.roundTrip !== 'boolean' ||
     input.pointIds.some(
       (id) => !data.points.some((point) => point.id === id),
@@ -66,7 +83,8 @@ export async function POST(request: Request, { params }: Context) {
       !input.pointIds.includes(input.fixedEndId)) ||
     (input.fixedStartId !== undefined &&
       input.fixedStartId === input.fixedEndId) ||
-    (input.roundTrip && input.fixedEndId !== undefined)
+    (input.roundTrip && input.fixedEndId !== undefined) ||
+    (input.mode !== 'transit' && input.departureTime !== undefined)
   ) {
     return NextResponse.json(
       { message: 'Invalid route options or point IDs.' },
@@ -77,9 +95,19 @@ export async function POST(request: Request, { params }: Context) {
   const selected = input.pointIds.map(
     (id) => data.points.find((point) => point.id === id)!,
   );
-  const provider = new OsrmRoutingProvider();
+  const provider =
+    input.mode === 'transit'
+      ? new GoogleTransitRoutingProvider()
+      : new OsrmRoutingProvider();
   try {
-    const matrix = await provider.durationMatrix(selected, input.mode);
+    const matrix =
+      provider instanceof GoogleTransitRoutingProvider
+        ? await provider.durationMatrix(
+            selected,
+            'transit',
+            input.departureTime,
+          )
+        : await provider.durationMatrix(selected, input.mode);
     const optimized =
       input.optimize === false
         ? {
@@ -101,6 +129,7 @@ export async function POST(request: Request, { params }: Context) {
     const ordered = optimized.order.map((index) => selected[index]!);
     const legPoints = input.roundTrip ? [...ordered, ordered[0]!] : ordered;
     const legs: RoutePlan['legs'] = [];
+    let departureTime = input.departureTime;
     for (let index = 1; index < legPoints.length; index++) {
       const from = legPoints[index - 1]!;
       const to = legPoints[index]!;
@@ -108,6 +137,7 @@ export async function POST(request: Request, { params }: Context) {
         origin: from,
         destination: to,
         mode: input.mode,
+        departureTime,
       });
       legs.push({
         fromPointId: from.id,
@@ -115,7 +145,11 @@ export async function POST(request: Request, { params }: Context) {
         distanceMeters: route.distanceMeters,
         durationSeconds: route.durationSeconds,
         geometry: route.path,
+        departureTime: route.departureTime,
+        arrivalTime: route.arrivalTime,
+        steps: route.steps,
       });
+      departureTime = route.arrivalTime ?? departureTime;
     }
     const plan: RoutePlan = {
       id: crypto.randomUUID(),
@@ -135,12 +169,16 @@ export async function POST(request: Request, { params }: Context) {
       optimizationMethod: optimized.method,
       provider: matrix.metadata,
       legs,
+      departureTime: legs[0]?.departureTime ?? input.departureTime,
+      arrivalTime: legs.at(-1)?.arrivalTime,
     };
     return NextResponse.json(saveRoutePlan(tripId, plan), { status: 201 });
   } catch (error) {
     if (
       error instanceof UnreachableRouteError ||
-      (error instanceof RoutingProviderError && error.kind === 'unreachable')
+      (error instanceof RoutingProviderError && error.kind === 'unreachable') ||
+      (error instanceof GoogleTransitRoutingProviderError &&
+        error.kind === 'unreachable')
     ) {
       return NextResponse.json(
         { message: error.message, code: 'UNREACHABLE_STOPS' },

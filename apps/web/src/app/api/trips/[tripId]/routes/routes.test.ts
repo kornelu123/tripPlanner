@@ -163,4 +163,25 @@ describe('trip routes API', () => {
     expect(response.status).toBe(400);
     expect(provider).not.toHaveBeenCalled();
   });
+
+  it('requires a future departure time for public transit', async () => {
+    const provider = vi.fn();
+    vi.stubGlobal('fetch', provider);
+    const tripId = crypto.randomUUID();
+    const pointIds = getTripEditorData(tripId).points.map(({ id }) => id);
+    const response = await POST(
+      new Request(`http://localhost/api/trips/${tripId}/routes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pointIds, mode: 'transit', roundTrip: false }),
+      }),
+      context(tripId),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      message: 'Choose a future departure time for public transit.',
+    });
+    expect(provider).not.toHaveBeenCalled();
+  });
 });

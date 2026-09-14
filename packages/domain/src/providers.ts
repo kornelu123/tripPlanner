@@ -10,7 +10,54 @@ export interface Place {
   formattedAddress?: string;
 }
 
-export type TravelMode = 'driving' | 'walking';
+export type TravelMode = 'driving' | 'walking' | 'transit';
+
+export type TransitVehicleType =
+  | 'BUS'
+  | 'CABLE_CAR'
+  | 'COMMUTER_TRAIN'
+  | 'FERRY'
+  | 'FUNICULAR'
+  | 'GONDOLA_LIFT'
+  | 'HEAVY_RAIL'
+  | 'HIGH_SPEED_TRAIN'
+  | 'INTERCITY_BUS'
+  | 'LONG_DISTANCE_TRAIN'
+  | 'METRO_RAIL'
+  | 'MONORAIL'
+  | 'OTHER'
+  | 'RAIL'
+  | 'SHARE_TAXI'
+  | 'SUBWAY'
+  | 'TRAM'
+  | 'TROLLEYBUS';
+
+export interface TransitStop {
+  name: string;
+  coordinates: Coordinates;
+}
+
+export interface TransitDetails {
+  arrivalStop: TransitStop;
+  arrivalTime: string;
+  departureStop: TransitStop;
+  departureTime: string;
+  headsign: string;
+  lineName: string;
+  lineShortName?: string;
+  agencyName?: string;
+  vehicleName: string;
+  vehicleType: TransitVehicleType;
+  stopCount: number;
+}
+
+export interface RouteStep {
+  distanceMeters: number;
+  durationSeconds: number;
+  instructions?: string;
+  mode: TravelMode;
+  transit?: TransitDetails;
+}
 
 export interface ProviderMetadata {
   provider: string;
@@ -28,6 +75,7 @@ export interface RouteRequest {
   destination: Coordinates;
   waypoints?: Coordinates[];
   mode: TravelMode;
+  departureTime?: string;
 }
 
 export interface Route {
@@ -35,6 +83,9 @@ export interface Route {
   durationSeconds: number;
   path: Coordinates[];
   metadata: ProviderMetadata;
+  steps?: RouteStep[];
+  arrivalTime?: string;
+  departureTime?: string;
 }
 
 export interface RoutingProvider {

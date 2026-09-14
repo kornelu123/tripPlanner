@@ -326,6 +326,23 @@ describe('TripEditor', () => {
     ).toBe(true);
   });
 
+  it('collects a departure time for public transit', async () => {
+    const user = userEvent.setup();
+    render(<TripEditor tripId="test" />);
+    await screen.findByText('First place', {
+      selector: '.point-select strong',
+    });
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Travel mode' }),
+      'transit',
+    );
+
+    const departure = screen.getByLabelText('Depart at');
+    expect(departure.getAttribute('type')).toBe('datetime-local');
+    expect(departure.getAttribute('required')).not.toBeNull();
+  });
+
   it('restores an unsaved place draft from local storage', async () => {
     const user = userEvent.setup();
     const view = render(<TripEditor tripId="test" />);
