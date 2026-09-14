@@ -42,6 +42,7 @@ export function protectRequest(request: Request): NextResponse | undefined {
     const origin = request.headers.get('origin');
     const expected = new URL(process.env.APP_URL ?? request.url).origin;
     const fetchSite = request.headers.get('sec-fetch-site');
+
     if (
       fetchSite !== 'same-origin' &&
       (fetchSite !== null || origin !== expected)
