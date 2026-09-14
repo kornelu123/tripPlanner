@@ -92,7 +92,7 @@ export async function processSocialImport(
         'No location was detected in the permitted post metadata.',
       );
     item = transitionSocialImport(item, 'needs_confirmation');
-    saveSocialImport({ ...item, candidates });
+    saveSocialImport({ ...item, candidates, metadata });
   } catch (error) {
     const known = error instanceof PlatformImportError;
     const noLocation = known && error.message.startsWith('No location');

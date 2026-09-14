@@ -41,7 +41,9 @@ describe('trip imports API', () => {
       new Request('http://localhost/api/trips/trip-1/imports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: 'https://instagram.com/p/not-canonical/' }),
+        body: JSON.stringify({
+          url: 'https://www.instagram.com/stories/user/123/',
+        }),
       }),
       context,
     );

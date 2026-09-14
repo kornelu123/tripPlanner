@@ -58,4 +58,41 @@ describe('social import worker', () => {
       'no_location_detected',
     );
   });
+
+  it('retains gathered post metadata with the import', async () => {
+    const item = saveSocialImport(queued());
+    await processSocialImport(item.tripId, item.id, {
+      adapters: {
+        tiktok: {
+          platform: 'tiktok',
+          fetchMetadata: async () => ({
+            platform: 'tiktok',
+            canonicalUrl: item.sourceUrl,
+            postId: '123',
+            caption: 'Dinner at Central Market',
+            authorName: 'Traveler',
+            authorUrl: 'https://www.tiktok.com/@traveler',
+            thumbnailUrl: 'https://cdn.example.test/preview.jpg',
+            mediaType: 'video',
+          }),
+        },
+      },
+      geocoder: {
+        search: async () => [
+          {
+            id: 'market',
+            name: 'Central Market',
+            formattedAddress: 'Lisbon',
+            coordinates: { latitude: 38.7, longitude: -9.1 },
+          },
+        ],
+        reverse: async () => null,
+      },
+    });
+    expect(getSocialImport(item.tripId, item.id)?.metadata).toMatchObject({
+      caption: 'Dinner at Central Market',
+      authorName: 'Traveler',
+      mediaType: 'video',
+    });
+  });
 });

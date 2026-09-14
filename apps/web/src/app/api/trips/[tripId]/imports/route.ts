@@ -5,7 +5,7 @@ import { enqueueSocialImport } from '../../../../../lib/social-import-worker';
 import { listSocialImports } from '../../../../../lib/social-import-store';
 import {
   UnsafeUrlError,
-  validateSocialUrl,
+  resolveSocialUrl,
 } from '../../../../../lib/social-url-security';
 import { authorizeTrip } from '../../../../../lib/auth';
 import { importSchema, parseJson } from '../../../../../lib/api-schemas';
@@ -29,7 +29,7 @@ export async function POST(request: Request, { params }: Context) {
   try {
     if (typeof sourceUrl !== 'string')
       throw new UnsafeUrlError('A post URL is required.');
-    const validated = validateSocialUrl(sourceUrl);
+    const validated = await resolveSocialUrl(sourceUrl);
     const now = new Date().toISOString();
     const item: SocialImport = {
       id: crypto.randomUUID(),
