@@ -107,6 +107,10 @@ export function getTripEditorData(tripId: string): TripEditorData {
   return data;
 }
 
+export function renameTrip(tripId: string, name: string) {
+  getTripEditorData(tripId).trip.name = name;
+}
+
 export function canEditTrip(tripId: string, userId: string): boolean {
   getTripEditorData(tripId);
   return owners.get(tripId) === userId;

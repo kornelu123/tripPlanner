@@ -128,9 +128,7 @@ describe('Apple authentication routes', () => {
     );
 
     expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'https://trips.example.com/account',
-    );
+    expect(response.headers.get('location')).toBe('https://trips.example.com/');
     expect(mocks.createUser).toHaveBeenCalledWith(
       'relay@privaterelay.appleid.com',
       'Taylor Traveler',

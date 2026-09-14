@@ -1,4 +1,4 @@
-import { and, asc, eq, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, or, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 import * as schema from './schema';
@@ -32,6 +32,29 @@ export function tripEditCondition(userId: string) {
 
 export function createTripRepository(database: Database) {
   return {
+    async listTrips(userId: string) {
+      return database
+        .select({
+          id: schema.trips.id,
+          name: schema.trips.name,
+          ownerId: schema.trips.ownerId,
+          updatedAt: schema.trips.updatedAt,
+          role: sql<'owner' | MembershipRole>`case
+            when ${schema.trips.ownerId} = ${userId} then 'owner'
+            else ${schema.memberships.role}
+          end`,
+        })
+        .from(schema.trips)
+        .leftJoin(
+          schema.memberships,
+          and(
+            eq(schema.memberships.tripId, schema.trips.id),
+            eq(schema.memberships.userId, userId),
+          ),
+        )
+        .where(canReadTrip(userId))
+        .orderBy(desc(schema.trips.updatedAt));
+    },
     async createTrip(userId: string, name: string) {
       return database.transaction(async (transaction) => {
         const [trip] = await transaction
@@ -108,6 +131,43 @@ export function createTripRepository(database: Database) {
         actorUserId: ownerId,
         subjectId: tripId,
       });
+      return membership;
+    },
+
+    async listMembers(ownerId: string, tripId: string) {
+      const [ownedTrip] = await database
+        .select({ id: schema.trips.id })
+        .from(schema.trips)
+        .where(
+          and(eq(schema.trips.id, tripId), eq(schema.trips.ownerId, ownerId)),
+        )
+        .limit(1);
+      if (!ownedTrip) return undefined;
+
+      return database
+        .select({
+          userId: schema.users.id,
+          email: schema.users.email,
+          displayName: schema.users.displayName,
+          role: schema.memberships.role,
+        })
+        .from(schema.memberships)
+        .innerJoin(schema.users, eq(schema.users.id, schema.memberships.userId))
+        .where(eq(schema.memberships.tripId, tripId))
+        .orderBy(asc(schema.users.displayName));
+    },
+
+    async removeMember(ownerId: string, tripId: string, userId: string) {
+      const [membership] = await database
+        .delete(schema.memberships)
+        .where(
+          and(
+            eq(schema.memberships.tripId, tripId),
+            eq(schema.memberships.userId, userId),
+            sql`exists (select 1 from ${schema.trips} where ${schema.trips.id} = ${tripId} and ${schema.trips.ownerId} = ${ownerId})`,
+          ),
+        )
+        .returning();
       return membership;
     },
   };
