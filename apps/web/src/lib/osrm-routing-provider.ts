@@ -34,10 +34,19 @@ export class RoutingProviderError extends Error {
   }
 }
 
-const profiles: Record<TravelMode, string> = {
+const profiles: Record<Exclude<TravelMode, 'transit'>, string> = {
   driving: 'driving',
   walking: 'walking',
 };
+
+function profileFor(mode: TravelMode) {
+  if (mode === 'transit')
+    throw new RoutingProviderError(
+      'OSRM does not provide scheduled public transit routes.',
+      'invalid-response',
+    );
+  return profiles[mode];
+}
 
 function coordinatesPath(points: Coordinates[]) {
   return points
@@ -82,7 +91,7 @@ export class OsrmRoutingProvider implements RoutingProvider {
     points: Coordinates[],
     mode: TravelMode,
   ): Promise<DurationMatrix> {
-    const profile = profiles[mode];
+    const profile = profileFor(mode);
     const result = await this.get<OsrmTableResponse>(
       `/table/v1/${profile}/${coordinatesPath(points)}?annotations=duration`,
     );
@@ -108,7 +117,7 @@ export class OsrmRoutingProvider implements RoutingProvider {
     waypoints = [],
     mode,
   }: RouteRequest): Promise<Route> {
-    const profile = profiles[mode];
+    const profile = profileFor(mode);
     const result = await this.get<OsrmRouteResponse>(
       `/route/v1/${profile}/${coordinatesPath([origin, ...waypoints, destination])}?overview=full&geometries=geojson&steps=false`,
     );
