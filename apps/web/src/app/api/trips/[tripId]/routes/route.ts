@@ -11,6 +11,8 @@ import {
 } from '../../../../../lib/google-transit-routing-provider';
 import {
   getTripEditorData,
+  loadTripEditorData,
+  persistTripEditorData,
   restorePreviousRoutePlan,
   saveRoutePlan,
 } from '../../../../../lib/trip-editor-store';
@@ -29,6 +31,7 @@ export async function GET(request: Request, { params }: Context) {
   const { tripId } = await params;
   const auth = await authorizeTrip(request, tripId);
   if (auth.error) return auth.error;
+  await loadTripEditorData(tripId);
   const { routePlan, previousRoutePlan } = getTripEditorData(tripId);
   return NextResponse.json({ routePlan, previousRoutePlan });
 }
@@ -37,7 +40,9 @@ export async function PATCH(request: Request, { params }: Context) {
   const { tripId } = await params;
   const auth = await authorizeTrip(request, tripId, true);
   if (auth.error) return auth.error;
+  await loadTripEditorData(tripId);
   const restored = restorePreviousRoutePlan(tripId);
+  if (restored) await persistTripEditorData(tripId);
   return restored
     ? NextResponse.json(restored)
     : NextResponse.json(
@@ -50,6 +55,7 @@ export async function POST(request: Request, { params }: Context) {
   const { tripId } = await params;
   const auth = await authorizeTrip(request, tripId, true);
   if (auth.error) return auth.error;
+  await loadTripEditorData(tripId);
   const input = (await parseJson(request, routePlanSchema)) as
     | RoutePlanRequest
     | undefined;
@@ -172,7 +178,9 @@ export async function POST(request: Request, { params }: Context) {
       departureTime: legs[0]?.departureTime ?? input.departureTime,
       arrivalTime: legs.at(-1)?.arrivalTime,
     };
-    return NextResponse.json(saveRoutePlan(tripId, plan), { status: 201 });
+    const saved = saveRoutePlan(tripId, plan);
+    await persistTripEditorData(tripId);
+    return NextResponse.json(saved, { status: 201 });
   } catch (error) {
     if (
       error instanceof UnreachableRouteError ||

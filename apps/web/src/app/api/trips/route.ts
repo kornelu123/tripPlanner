@@ -3,7 +3,10 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { authenticated } from '@/lib/auth';
-import { renameTrip } from '@/lib/trip-editor-store';
+import {
+  initializeTripEditorData,
+  persistTripEditorData,
+} from '@/lib/trip-editor-store';
 
 const tripSchema = z.object({ name: z.string().trim().min(1).max(200) });
 
@@ -33,6 +36,7 @@ export async function POST(request: Request) {
       { message: 'Could not create map.' },
       { status: 500 },
     );
-  renameTrip(trip.id, trip.name);
+  initializeTripEditorData(trip.id, trip.name);
+  await persistTripEditorData(trip.id);
   return NextResponse.json({ ...trip, role: 'owner' }, { status: 201 });
 }

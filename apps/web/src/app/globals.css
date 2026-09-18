@@ -938,6 +938,24 @@ select {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
+.route-point-selection {
+  display: grid;
+  gap: 7px;
+  margin: 16px 0;
+  padding: 0;
+  border: 0;
+}
+.route-point-selection legend {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.route-point-selection label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
 .route-options label {
   display: grid;
   gap: 4px;

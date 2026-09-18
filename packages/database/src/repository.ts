@@ -74,6 +74,15 @@ export function createTripRepository(database: Database) {
       return trip;
     },
 
+    async getTripById(tripId: string) {
+      const [trip] = await database
+        .select()
+        .from(schema.trips)
+        .where(eq(schema.trips.id, tripId))
+        .limit(1);
+      return trip;
+    },
+
     async listTripPoints(userId: string, tripId: string) {
       return database
         .select({ tripPoint: schema.tripPoints, place: schema.places })

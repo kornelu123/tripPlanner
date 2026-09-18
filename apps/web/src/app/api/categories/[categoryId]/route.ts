@@ -6,6 +6,8 @@ import {
   allowedCategoryIcons,
   deleteCategory,
   listCategories,
+  loadTripEditorData,
+  persistTripEditorData,
   updateCategory,
 } from '../../../../lib/trip-editor-store';
 
@@ -24,6 +26,7 @@ export async function PATCH(request: Request, { params }: Context) {
     );
   const auth = await authorizeTrip(request, tripId, true);
   if (auth.error) return auth.error;
+  await loadTripEditorData(tripId);
   const update: {
     name?: string;
     color?: string;
@@ -73,6 +76,7 @@ export async function PATCH(request: Request, { params }: Context) {
     update.position = Number(input.position);
   }
   const category = updateCategory(tripId, categoryId, update);
+  if (category) await persistTripEditorData(tripId);
   return category
     ? NextResponse.json(category)
     : NextResponse.json({ message: 'Category not found.' }, { status: 404 });
@@ -85,10 +89,11 @@ export async function DELETE(request: Request, { params }: Context) {
   if (!tripId) return new Response(null, { status: 400 });
   const auth = await authorizeTrip(request, tripId, true);
   if (auth.error) return auth.error;
+  await loadTripEditorData(tripId);
   const replacementId = url.searchParams.get('reassignTo') ?? undefined;
   const exists = listCategories(tripId).some(({ id }) => id === categoryId);
   if (!exists) return new Response(null, { status: 404 });
-  return new Response(null, {
-    status: deleteCategory(tripId, categoryId, replacementId) ? 204 : 409,
-  });
+  const deleted = deleteCategory(tripId, categoryId, replacementId);
+  if (deleted) await persistTripEditorData(tripId);
+  return new Response(null, { status: deleted ? 204 : 409 });
 }

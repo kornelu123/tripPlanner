@@ -4,7 +4,7 @@ import {
   transitionSocialImport,
 } from '@trip-planner/domain';
 
-import { getTripEditorData } from './trip-editor-store';
+import { getTripEditorData, loadTripEditorData } from './trip-editor-store';
 import {
   createPlatformAdapters,
   PlatformImportError,
@@ -58,6 +58,7 @@ export async function processSocialImport(
     geocoder?: GeocodingProvider;
   } = {},
 ) {
+  await loadTripEditorData(tripId);
   const original = getSocialImport(tripId, importId);
   if (!original || original.status !== 'queued') return;
   let item = saveSocialImport(transitionSocialImport(original, 'processing'));

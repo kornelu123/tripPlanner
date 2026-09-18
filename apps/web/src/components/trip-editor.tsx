@@ -541,6 +541,21 @@ export function TripEditor({ tripId }: { tripId: string }) {
     setStatus('Manual order changed. Recalculate to save it.');
   }
 
+  function toggleRoutePoint(pointId: string, included: boolean) {
+    setRouteOrder((current) =>
+      included ? [...current, pointId] : current.filter((id) => id !== pointId),
+    );
+    if (!included) {
+      if (fixedStartId === pointId) setFixedStartId('');
+      if (fixedEndId === pointId) setFixedEndId('');
+    }
+    setStatus(
+      included
+        ? 'Place included in the next route.'
+        : 'Place excluded from the route but kept on the map.',
+    );
+  }
+
   if (!data) {
     return (
       <main className="editor-loading" aria-live="polite">
@@ -992,11 +1007,13 @@ export function TripEditor({ tripId }: { tripId: string }) {
                   }}
                 >
                   <option value="">Any stop</option>
-                  {data.points.map((point) => (
-                    <option key={point.id} value={point.id}>
-                      Start — {point.name}
-                    </option>
-                  ))}
+                  {data.points
+                    .filter(({ id }) => routeOrder.includes(id))
+                    .map((point) => (
+                      <option key={point.id} value={point.id}>
+                        Start — {point.name}
+                      </option>
+                    ))}
                 </select>
               </label>
               <label>
@@ -1007,15 +1024,17 @@ export function TripEditor({ tripId }: { tripId: string }) {
                   onChange={(event) => setFixedEndId(event.target.value)}
                 >
                   <option value="">Any stop</option>
-                  {data.points.map((point) => (
-                    <option
-                      key={point.id}
-                      value={point.id}
-                      disabled={point.id === fixedStartId}
-                    >
-                      End — {point.name}
-                    </option>
-                  ))}
+                  {data.points
+                    .filter(({ id }) => routeOrder.includes(id))
+                    .map((point) => (
+                      <option
+                        key={point.id}
+                        value={point.id}
+                        disabled={point.id === fixedStartId}
+                      >
+                        End — {point.name}
+                      </option>
+                    ))}
                 </select>
               </label>
               <label className="round-trip">
@@ -1027,6 +1046,21 @@ export function TripEditor({ tripId }: { tripId: string }) {
                 Return to start
               </label>
             </div>
+            <fieldset className="route-point-selection">
+              <legend>Places included in route</legend>
+              {data.points.map((point) => (
+                <label key={point.id}>
+                  <input
+                    type="checkbox"
+                    checked={routeOrder.includes(point.id)}
+                    onChange={(event) =>
+                      toggleRoutePoint(point.id, event.target.checked)
+                    }
+                  />
+                  Route: {point.name}
+                </label>
+              ))}
+            </fieldset>
             <ol className="route-order" aria-label="Route stop order">
               {routeOrder.map((id, index) => {
                 const point = data.points.find((item) => item.id === id);

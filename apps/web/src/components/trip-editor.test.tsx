@@ -482,6 +482,36 @@ describe('TripEditor', () => {
     ).toBe(true);
   });
 
+  it('excludes and restores a pin for routing without removing it from the map', async () => {
+    const user = userEvent.setup();
+    render(<TripEditor tripId="test" />);
+    await screen.findByText('First place', {
+      selector: '.point-select strong',
+    });
+    const includePoint = screen.getByRole('checkbox', {
+      name: 'Route: First place',
+    });
+
+    await user.click(includePoint);
+
+    expect(
+      screen.getByText('First place', { selector: '.point-select strong' }),
+    ).toBeTruthy();
+    expect(screen.getByLabelText('Visible map points').textContent).toContain(
+      'first',
+    );
+    expect(screen.queryByText('Route stop: First place')).toBeNull();
+    expect(
+      await screen.findByText(
+        'Place excluded from the route but kept on the map.',
+      ),
+    ).toBeTruthy();
+
+    await user.click(includePoint);
+
+    expect(screen.getByText('Route stop: First place')).toBeTruthy();
+  });
+
   it('collects a departure time for public transit', async () => {
     const user = userEvent.setup();
     render(<TripEditor tripId="test" />);
