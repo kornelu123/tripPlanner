@@ -132,6 +132,13 @@ export function addTripPoint(tripId: string, draft: PointDraft): TripPoint {
   return point;
 }
 
+export function addTripPoints(
+  tripId: string,
+  drafts: PointDraft[],
+): TripPoint[] {
+  return drafts.map((draft) => addTripPoint(tripId, draft));
+}
+
 export function listCategories(tripId: string): Category[] {
   return getTripEditorData(tripId).categories;
 }
