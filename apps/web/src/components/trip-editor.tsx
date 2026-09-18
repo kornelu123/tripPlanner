@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { LazyTripMap } from './lazy-trip-map';
 import { LocationDetails } from './location-details';
 import { PlaceSearch } from './place-search';
+import { parseLocationJson } from '../lib/location-json-import';
 import type {
   PendingImport,
   Category,
@@ -86,6 +87,9 @@ export function TripEditor({ tripId }: { tripId: string }) {
   const [socialImportState, setSocialImportState] = useState<
     'idle' | 'loading' | 'error'
   >('idle');
+  const [jsonImportState, setJsonImportState] = useState<'idle' | 'loading'>(
+    'idle',
+  );
   const [routeState, setRouteState] = useState<'idle' | 'loading' | 'error'>(
     'idle',
   );
@@ -234,6 +238,33 @@ export function TripEditor({ tripId }: { tripId: string }) {
     setShowSocialImport(false);
     setSocialImportState('idle');
     setStatus('Social post submitted. We’ll look for places to add.');
+  }
+
+  async function importLocationJson(file: File) {
+    setJsonImportState('loading');
+    try {
+      const drafts = parseLocationJson(await file.text());
+      const response = await fetch(`/api/trips/${tripId}/points`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(drafts),
+      });
+      if (!response.ok) throw new Error('Could not import the places.');
+      const points = (await response.json()) as TripPoint[];
+      setData(
+        (current) =>
+          current && { ...current, points: [...current.points, ...points] },
+      );
+      setRouteOrder((current) => [...current, ...points.map(({ id }) => id)]);
+      setSelectedId(points.at(-1)?.id ?? null);
+      setStatus(
+        `${points.length} ${points.length === 1 ? 'place' : 'places'} imported from ${file.name}.`,
+      );
+    } catch (error) {
+      setStatus((error as Error).message);
+    } finally {
+      setJsonImportState('idle');
+    }
   }
 
   function addPending(item: PendingImport) {
@@ -629,6 +660,30 @@ export function TripEditor({ tripId }: { tripId: string }) {
             <button type="button" onClick={() => setDraft(emptyDraft)}>
               Enter coordinates
             </button>
+            <label
+              className="json-import-button"
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault();
+                const file = event.dataTransfer.files[0];
+                if (file && jsonImportState !== 'loading')
+                  void importLocationJson(file);
+              }}
+            >
+              {jsonImportState === 'loading'
+                ? 'Importing…'
+                : 'Import or drop JSON'}
+              <input
+                type="file"
+                accept=".json,application/json"
+                disabled={jsonImportState === 'loading'}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void importLocationJson(file);
+                  event.target.value = '';
+                }}
+              />
+            </label>
             <button
               className="social-import-button"
               type="button"

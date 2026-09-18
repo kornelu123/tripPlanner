@@ -27,6 +27,7 @@ export const pointDraftSchema = z.strictObject({
     })
     .optional(),
 });
+export const pointDraftsSchema = z.array(pointDraftSchema).min(1).max(1000);
 export const pointUpdateSchema = pointDraftSchema
   .partial()
   .refine((value) => Object.keys(value).length > 0);
