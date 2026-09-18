@@ -257,7 +257,9 @@ export function TripEditor({ tripId }: { tripId: string }) {
       );
       setRouteOrder((current) => [...current, ...points.map(({ id }) => id)]);
       setSelectedId(points.at(-1)?.id ?? null);
-      setStatus(`${points.length} places imported from ${file.name}.`);
+      setStatus(
+        `${points.length} ${points.length === 1 ? 'place' : 'places'} imported from ${file.name}.`,
+      );
     } catch (error) {
       setStatus((error as Error).message);
     } finally {
@@ -658,8 +660,19 @@ export function TripEditor({ tripId }: { tripId: string }) {
             <button type="button" onClick={() => setDraft(emptyDraft)}>
               Enter coordinates
             </button>
-            <label className="json-import-button">
-              {jsonImportState === 'loading' ? 'Importing…' : 'Import JSON'}
+            <label
+              className="json-import-button"
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault();
+                const file = event.dataTransfer.files[0];
+                if (file && jsonImportState !== 'loading')
+                  void importLocationJson(file);
+              }}
+            >
+              {jsonImportState === 'loading'
+                ? 'Importing…'
+                : 'Import or drop JSON'}
               <input
                 type="file"
                 accept=".json,application/json"

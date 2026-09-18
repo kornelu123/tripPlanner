@@ -300,7 +300,7 @@ describe('TripEditor', () => {
       { type: 'application/json' },
     );
 
-    await user.upload(screen.getByLabelText('Import JSON'), file);
+    await user.upload(screen.getByLabelText('Import or drop JSON'), file);
 
     expect(
       await screen.findByText('2 places imported from paryz.json.'),
@@ -335,7 +335,7 @@ describe('TripEditor', () => {
     await screen.findByText('First place');
 
     await user.upload(
-      screen.getByLabelText('Import JSON'),
+      screen.getByLabelText('Import or drop JSON'),
       new File(['not-json'], 'broken.json', { type: 'application/json' }),
     );
 
@@ -343,6 +343,46 @@ describe('TripEditor', () => {
       await screen.findByText('The selected file is not valid JSON.'),
     ).toBeTruthy();
     expect(points).toHaveLength(1);
+  });
+
+  it('imports a dropped JSON file without navigating to its file URL', async () => {
+    render(<TripEditor tripId="test" />);
+    await screen.findByText('First place');
+    const file = new File(
+      [
+        JSON.stringify([
+          {
+            nazwa: 'Wieża Eiffla',
+            adres: 'Champ de Mars, Paris',
+            lokalizacja_geograficzna: {
+              szerokosc_geograficzna: 48.85837,
+              dlugosc_geograficzna: 2.294481,
+            },
+          },
+        ]),
+      ],
+      'paryz.json',
+      { type: 'application/json' },
+    );
+    const importControl = screen
+      .getByLabelText('Import or drop JSON')
+      .closest('label')!;
+
+    const dragOverAccepted = fireEvent.dragOver(importControl, {
+      dataTransfer: { files: [file] },
+    });
+    const dropAccepted = fireEvent.drop(importControl, {
+      dataTransfer: { files: [file] },
+    });
+
+    expect(dragOverAccepted).toBe(false);
+    expect(dropAccepted).toBe(false);
+    expect(
+      await screen.findByText('1 place imported from paryz.json.'),
+    ).toBeTruthy();
+    expect(
+      screen.getByText('Wieża Eiffla', { selector: 'strong' }),
+    ).toBeTruthy();
   });
 
   it('distinguishes sourced estimates, stale data, loading, and unavailable prices', async () => {
