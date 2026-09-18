@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 
-import { addTripPoint } from '../../../../../../lib/trip-editor-store';
+import {
+  addTripPoint,
+  loadTripEditorData,
+  persistTripEditorData,
+} from '../../../../../../lib/trip-editor-store';
 import {
   getSocialImport,
   saveSocialImport,
@@ -26,6 +30,7 @@ export async function POST(request: Request, { params }: Context) {
   const { tripId, importId } = await params;
   const auth = await authorizeTrip(request, tripId, true);
   if (auth.error) return auth.error;
+  await loadTripEditorData(tripId);
   const item = getSocialImport(tripId, importId);
   if (!item)
     return NextResponse.json({ message: 'Import not found.' }, { status: 404 });
@@ -70,5 +75,6 @@ export async function POST(request: Request, { params }: Context) {
     ...transitionSocialImport(item, 'completed'),
     candidates: [],
   });
+  await persistTripEditorData(tripId);
   return NextResponse.json(point, { status: 201 });
 }

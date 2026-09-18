@@ -1,3 +1,9 @@
+import {
+  createTripRepository,
+  getDatabase,
+  getRedisClient,
+} from '@trip-planner/database';
+
 import type {
   Category,
   PointDraft,
@@ -24,59 +30,107 @@ const defaultCategories: Omit<Category, 'id'>[] = [
 const stores = new Map<string, TripEditorData>();
 const owners = new Map<string, string>();
 
-function createTrip(tripId: string): TripEditorData {
+function createTrip(
+  tripId: string,
+  name = 'Lisbon long weekend',
+  includeDemoData = true,
+): TripEditorData {
   const categories = defaultCategories.map((category) => ({
     ...category,
     id: `${tripId}-${category.name.toLowerCase()}`,
   }));
   return {
-    trip: { id: tripId, name: 'Lisbon long weekend' },
+    trip: { id: tripId, name },
     categories,
-    points: [
-      {
-        id: 'miradouro',
-        name: 'Miradouro da Senhora',
-        address: 'Largo Monte, 1170-107 Lisboa',
-        latitude: 38.7191,
-        longitude: -9.1328,
-        categoryId: `${tripId}-outdoors`,
-      },
-      {
-        id: 'time-out-market',
-        name: 'Time Out Market',
-        address: 'Av. 24 de Julho 49, Lisboa',
-        latitude: 38.707,
-        longitude: -9.1457,
-        categoryId: `${tripId}-food`,
-      },
-      {
-        id: 'gulbenkian',
-        name: 'Calouste Gulbenkian Museum',
-        address: 'Av. de Berna 45A, Lisboa',
-        latitude: 38.7376,
-        longitude: -9.1546,
-        categoryId: `${tripId}-culture`,
-      },
-    ],
-    pendingImports: [
-      {
-        id: 'social-pasteis',
-        name: 'Pastéis de Belém',
-        address: 'R. de Belém 84 92, Lisboa',
-        latitude: 38.6975,
-        longitude: -9.2032,
-        source: 'Saved from Instagram',
-      },
-      {
-        id: 'social-lx-factory',
-        name: 'LX Factory',
-        address: 'R. Rodrigues de Faria 103, Lisboa',
-        latitude: 38.7037,
-        longitude: -9.178,
-        source: 'Saved from TikTok',
-      },
-    ],
+    points: includeDemoData
+      ? [
+          {
+            id: 'miradouro',
+            name: 'Miradouro da Senhora',
+            address: 'Largo Monte, 1170-107 Lisboa',
+            latitude: 38.7191,
+            longitude: -9.1328,
+            categoryId: `${tripId}-outdoors`,
+          },
+          {
+            id: 'time-out-market',
+            name: 'Time Out Market',
+            address: 'Av. 24 de Julho 49, Lisboa',
+            latitude: 38.707,
+            longitude: -9.1457,
+            categoryId: `${tripId}-food`,
+          },
+          {
+            id: 'gulbenkian',
+            name: 'Calouste Gulbenkian Museum',
+            address: 'Av. de Berna 45A, Lisboa',
+            latitude: 38.7376,
+            longitude: -9.1546,
+            categoryId: `${tripId}-culture`,
+          },
+        ]
+      : [],
+    pendingImports: includeDemoData
+      ? [
+          {
+            id: 'social-pasteis',
+            name: 'Pastéis de Belém',
+            address: 'R. de Belém 84 92, Lisboa',
+            latitude: 38.6975,
+            longitude: -9.2032,
+            source: 'Saved from Instagram',
+          },
+          {
+            id: 'social-lx-factory',
+            name: 'LX Factory',
+            address: 'R. Rodrigues de Faria 103, Lisboa',
+            latitude: 38.7037,
+            longitude: -9.178,
+            source: 'Saved from TikTok',
+          },
+        ]
+      : [],
   };
+}
+
+const redisKey = (tripId: string) => `trip-editor:${tripId}`;
+
+export function initializeTripEditorData(tripId: string, name: string) {
+  const data = createTrip(tripId, name, false);
+  stores.set(tripId, data);
+  return data;
+}
+
+export async function loadTripEditorData(tripId: string) {
+  const cached = stores.get(tripId);
+  if (cached) return cached;
+  if (tripId === 'demo') return getTripEditorData(tripId);
+  if (process.env.NODE_ENV === 'test') return getTripEditorData(tripId);
+
+  const redis = await getRedisClient();
+  const saved = await redis.get(redisKey(tripId));
+  if (saved) {
+    const data = JSON.parse(saved) as TripEditorData;
+    stores.set(tripId, data);
+    return data;
+  }
+
+  const trip = await createTripRepository(getDatabase()).getTripById(tripId);
+  const data = initializeTripEditorData(tripId, trip?.name ?? 'Untitled map');
+  await redis.set(redisKey(tripId), JSON.stringify(data));
+  return data;
+}
+
+export async function persistTripEditorData(tripId: string) {
+  if (tripId === 'demo' || process.env.NODE_ENV === 'test') return;
+  await (
+    await getRedisClient()
+  ).set(redisKey(tripId), JSON.stringify(getTripEditorData(tripId)));
+}
+
+export async function deletePersistedTripEditorData(tripId: string) {
+  if (tripId === 'demo' || process.env.NODE_ENV === 'test') return;
+  await (await getRedisClient()).del(redisKey(tripId));
 }
 
 export function saveRoutePlan(tripId: string, routePlan: RoutePlan): RoutePlan {
@@ -130,6 +184,13 @@ export function addTripPoint(tripId: string, draft: PointDraft): TripPoint {
     );
   }
   return point;
+}
+
+export function addTripPoints(
+  tripId: string,
+  drafts: PointDraft[],
+): TripPoint[] {
+  return drafts.map((draft) => addTripPoint(tripId, draft));
 }
 
 export function listCategories(tripId: string): Category[] {

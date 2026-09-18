@@ -171,13 +171,23 @@ describe('TripEditor', () => {
           return Response.json({ ...initialData, points });
         }
         if (url.endsWith('/points') && init?.method === 'POST') {
-          const created = {
-            ...(JSON.parse(String(init.body)) as TripPoint),
+          const body = JSON.parse(String(init.body)) as TripPoint | TripPoint[];
+          if (Array.isArray(body)) {
+            const created = body.map((point) => ({
+              ...point,
+              id: `created-${createdId++}`,
+              categoryId: 'outdoors',
+            }));
+            points.push(...created);
+            return Response.json(created, { status: 201 });
+          }
+          const createdPoint = {
+            ...body,
             id: `created-${createdId++}`,
             categoryId: 'outdoors',
           };
-          points.push(created);
-          return Response.json(created, { status: 201 });
+          points.push(createdPoint);
+          return Response.json(createdPoint, { status: 201 });
         }
         if (url.endsWith('/imports') && init?.method === 'POST') {
           return Response.json({ status: 'queued' }, { status: 202 });
@@ -258,6 +268,121 @@ describe('TripEditor', () => {
         url: 'https://www.instagram.com/reel/AbC123/',
       }),
     });
+  });
+
+  it('imports multiple places from one JSON file', async () => {
+    const user = userEvent.setup();
+    render(<TripEditor tripId="test" />);
+    await screen.findByText('First place');
+
+    const file = new File(
+      [
+        JSON.stringify([
+          {
+            nazwa: 'Wieża Eiffla',
+            adres: 'Champ de Mars, Paris',
+            lokalizacja_geograficzna: {
+              szerokosc_geograficzna: 48.85837,
+              dlugosc_geograficzna: 2.294481,
+            },
+          },
+          {
+            nazwa: 'Luwr',
+            adres: 'Rue de Rivoli, Paris',
+            lokalizacja_geograficzna: {
+              szerokosc_geograficzna: 48.8606,
+              dlugosc_geograficzna: 2.3376,
+            },
+          },
+        ]),
+      ],
+      'paryz.json',
+      { type: 'application/json' },
+    );
+
+    await user.upload(screen.getByLabelText('Import or drop JSON'), file);
+
+    expect(
+      await screen.findByText('2 places imported from paryz.json.'),
+    ).toBeTruthy();
+    expect(
+      screen.getByText('Wieża Eiffla', { selector: 'strong' }),
+    ).toBeTruthy();
+    expect(screen.getByText('Luwr', { selector: 'strong' })).toBeTruthy();
+    expect(fetch).toHaveBeenCalledWith('/api/trips/test/points', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify([
+        {
+          name: 'Wieża Eiffla',
+          address: 'Champ de Mars, Paris',
+          latitude: 48.85837,
+          longitude: 2.294481,
+        },
+        {
+          name: 'Luwr',
+          address: 'Rue de Rivoli, Paris',
+          latitude: 48.8606,
+          longitude: 2.3376,
+        },
+      ]),
+    });
+  });
+
+  it('rejects an invalid JSON import without adding places', async () => {
+    const user = userEvent.setup();
+    render(<TripEditor tripId="test" />);
+    await screen.findByText('First place');
+
+    await user.upload(
+      screen.getByLabelText('Import or drop JSON'),
+      new File(['not-json'], 'broken.json', { type: 'application/json' }),
+    );
+
+    expect(
+      await screen.findByText('The selected file is not valid JSON.'),
+    ).toBeTruthy();
+    expect(points).toHaveLength(1);
+  });
+
+  it('imports a dropped JSON file without navigating to its file URL', async () => {
+    render(<TripEditor tripId="test" />);
+    await screen.findByText('First place');
+    const file = new File(
+      [
+        JSON.stringify([
+          {
+            nazwa: 'Wieża Eiffla',
+            adres: 'Champ de Mars, Paris',
+            lokalizacja_geograficzna: {
+              szerokosc_geograficzna: 48.85837,
+              dlugosc_geograficzna: 2.294481,
+            },
+          },
+        ]),
+      ],
+      'paryz.json',
+      { type: 'application/json' },
+    );
+    const importControl = screen
+      .getByLabelText('Import or drop JSON')
+      .closest('label')!;
+
+    const dragOverAccepted = fireEvent.dragOver(importControl, {
+      dataTransfer: { files: [file] },
+    });
+    const dropAccepted = fireEvent.drop(importControl, {
+      dataTransfer: { files: [file] },
+    });
+
+    expect(dragOverAccepted).toBe(false);
+    expect(dropAccepted).toBe(false);
+    expect(
+      await screen.findByText('1 place imported from paryz.json.'),
+    ).toBeTruthy();
+    expect(
+      screen.getByText('Wieża Eiffla', { selector: 'strong' }),
+    ).toBeTruthy();
   });
 
   it('distinguishes sourced estimates, stale data, loading, and unavailable prices', async () => {
@@ -355,6 +480,36 @@ describe('TripEditor', () => {
         .getByLabelText('Fixed end')
         .querySelector<HTMLOptionElement>('option[value="first"]')?.disabled,
     ).toBe(true);
+  });
+
+  it('excludes and restores a pin for routing without removing it from the map', async () => {
+    const user = userEvent.setup();
+    render(<TripEditor tripId="test" />);
+    await screen.findByText('First place', {
+      selector: '.point-select strong',
+    });
+    const includePoint = screen.getByRole('checkbox', {
+      name: 'Route: First place',
+    });
+
+    await user.click(includePoint);
+
+    expect(
+      screen.getByText('First place', { selector: '.point-select strong' }),
+    ).toBeTruthy();
+    expect(screen.getByLabelText('Visible map points').textContent).toContain(
+      'first',
+    );
+    expect(screen.queryByText('Route stop: First place')).toBeNull();
+    expect(
+      await screen.findByText(
+        'Place excluded from the route but kept on the map.',
+      ),
+    ).toBeTruthy();
+
+    await user.click(includePoint);
+
+    expect(screen.getByText('Route stop: First place')).toBeTruthy();
   });
 
   it('collects a departure time for public transit', async () => {

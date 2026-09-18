@@ -763,6 +763,7 @@ select {
 .point-form button,
 .move-controls button,
 .add-actions button,
+.add-actions .json-import-button,
 .pending-imports button,
 .card-actions button {
   padding: 9px 12px;
@@ -772,6 +773,18 @@ select {
   background: white;
   font-weight: 600;
   font-size: 12px;
+}
+.add-actions .json-import-button {
+  cursor: pointer;
+}
+.json-import-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .search-form button {
   border-radius: 0 9px 9px 0;
@@ -924,6 +937,24 @@ select {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+.route-point-selection {
+  display: grid;
+  gap: 7px;
+  margin: 16px 0;
+  padding: 0;
+  border: 0;
+}
+.route-point-selection legend {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.route-point-selection label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
 }
 .route-options label {
   display: grid;
@@ -1725,6 +1756,7 @@ input::placeholder {
 .point-form button,
 .move-controls button,
 .add-actions button,
+.add-actions .json-import-button,
 .pending-imports button,
 .card-actions button,
 .category-manager button,

@@ -6,6 +6,9 @@ import { auditEvent } from '@/lib/safe-logging';
 import { deleteSocialImports } from '@/lib/social-import-store';
 import {
   deleteTrip as deleteStoredTrip,
+  deletePersistedTripEditorData,
+  loadTripEditorData,
+  persistTripEditorData,
   renameTrip as renameStoredTrip,
 } from '@/lib/trip-editor-store';
 import { authorizeTrip } from '@/lib/auth';
@@ -25,6 +28,7 @@ export async function DELETE(
   )
     return NextResponse.json({ message: 'Trip not found.' }, { status: 404 });
   deleteStoredTrip(tripId);
+  await deletePersistedTripEditorData(tripId);
   deleteSocialImports(tripId);
   auditEvent('trip.deleted', auth.user.id, tripId);
   return new Response(null, { status: 204 });
@@ -52,6 +56,8 @@ export async function PATCH(
   );
   if (!trip)
     return NextResponse.json({ message: 'Map not found.' }, { status: 404 });
+  await loadTripEditorData(tripId);
   renameStoredTrip(tripId, trip.name);
+  await persistTripEditorData(tripId);
   return NextResponse.json(trip);
 }
